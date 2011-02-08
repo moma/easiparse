@@ -1,5 +1,5 @@
 ---
-corpus_name: "input/corpus/toxico.txt"
+data_path: "/data/tina/Thomson/*"
 bdd_name: "isi"
 isi_spec: "input/parameters/parameters_isi.ini"
 match_regexp: "\bembryonic\b|\bembryo\b"

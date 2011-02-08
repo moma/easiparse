@@ -121,7 +121,7 @@ def divide(chaine,marqueur_cut,sep):
       right.append(ligne[cut:])
    return sep.join(left),sep.join(right)
 
-def main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=False):
+def main(file_isi, bdd_name, dico_tag, match_regexp, limit=None, overwrite=False):
 
    match_regexp = re.compile(match_regexp, re.I|re.U)
 
@@ -144,9 +144,8 @@ def main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=Fa
    intag = 0 # initialise la variable intag
    total_imported = 0 # initialise la variable total_imported
 
-   file_isi = open(corpus_name,'r')
-   file_isi_lignes  =  file_isi.readlines()
-
+   file_isi_lignes = file_isi.readlines()
+   notice = {}
    for ligne in file_isi_lignes:# itere sur les lignes du corpus
       debut_tag = dico_tag['condition_debut_tag'][0]  # debut tag = condition expression régulière
       nfirst = ligne[:longueur_tag] # nprems = n première lettres de la ligne, n=longueur_tag
@@ -169,7 +168,6 @@ def main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=Fa
       if intag == 1:
          contenu_tag += ligne # si la variable intag n'a pas été annulée parce qu'un nouveau tag aurait été rencontré, on concatène la ligne dans contenu_tag
       if nfirst == tag_begin:
-         total_imported += 1
          if limit is not None:
             if total_imported>limit:
                break
@@ -177,7 +175,7 @@ def main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=Fa
             print ( "%d notices indexés"%total_imported)
          notice = {} #on initialise la variable notice qui regroupe dans un dictionnaire les valeurs de la notice courante pour toutes les clés déclarées
       if nfirst == tag_end:
-         filter_notice(match_fields, match_regexp, notice, mongodb)
+         total_imported += filter_notice(match_fields, match_regexp, notice, mongodb)
    return total_imported
 
 def filter_notice(match_fields, match_regexp, notice, mongodb):
@@ -187,9 +185,9 @@ def filter_notice(match_fields, match_regexp, notice, mongodb):
    for tag in match_fields:
       if tag not in notice:
          logging.debug("notice incomplete")
-         return
+         return 0
    for tag in match_fields:
       if match_regexp.match(notice[tag]):
          logging.debug("matched %s in notice %s"%(str(match_regexp),notice['TI']))
          mongodb.notices.save(notice)
-         return
+         return 1

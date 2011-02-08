@@ -15,16 +15,36 @@
 
 from easiparse import importer
 import yaml
+from glob import glob
+import gzip
+import re
 
 if __name__ == "__main__":
-   parameters_user = yaml.safe_load( file( "config.yaml", 'rU' ) )
+    parameters_user = yaml.safe_load( file( "config.yaml", 'rU' ) )
+    
+    bdd_name =  parameters_user['bdd_name']
+    data_path = glob(parameters_user['data_path'])
+    param_corpus_name = parameters_user['isi_spec']
+    match_regexp = parameters_user['match_regexp']
 
-   bdd_name =  parameters_user['bdd_name']
-   corpus_name = parameters_user['corpus_name']
-   param_corpus_name = parameters_user['isi_spec']
-   match_regexp = parameters_user['match_regexp']
-
-   dico_tag = importer.lire_parametre_ini(param_corpus_name)
-
-   total = importer.main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=True)
-   print("TOTAL = %d indexed notices"%total)
+    dico_tag = importer.lire_parametre_ini(param_corpus_name)
+    total=0
+    
+    print data_path
+    
+    for filepath in data_path:
+        if re.match(r".+\.gz", filepath, re.I) is not None:
+            isi_file = gzip.open(filepath,'rb')
+        else:
+            continue
+        print "%s"%isi_file
+        subtotal = importer.main(
+            isi_file, 
+            bdd_name, 
+            dico_tag, 
+            match_regexp, 
+            limit=100, 
+            overwrite=True
+        )
+        total += subtotal
+    print("TOTAL = %d indexed notices"%total)

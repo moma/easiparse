@@ -21,9 +21,10 @@ if __name__ == "__main__":
 
    bdd_name =  parameters_user['bdd_name']
    corpus_name = parameters_user['corpus_name']
-   output_type = parameters_user['output_type']
    param_corpus_name = parameters_user['isi_spec']
+   match_regexp = parameters_user['match_regexp']
+
    dico_tag = importer.lire_parametre_ini(param_corpus_name)
 
-   total = importer.main(corpus_name, bdd_name, dico_tag, limit=100, overwrite=True)
+   total = importer.main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=True)
    print("TOTAL = %d indexed notices"%total)

@@ -63,24 +63,35 @@ def get_info_split(chaine,sep):
    return infosep
 
 
-def parser_contenu_tag(contenu_tag,notice,dico_tag,tag_isi_current,longueur_tag,i=0):
-   contenu_tag=contenu_tag[longueur_tag:]#on retire le dit tag du contenu si on n'a pas déjà effectué une étape de découpage sur notre chaine, cas C1
-   separateurs = dico_tag[tag_isi_current][1]#ce sont les séparateurs déclarés dans le fichier de paramètre
-   NN = len(separateurs[:2])-separateurs[:2].count('') # le nombre de séparateurs, c'est le nombre de valeurs non nulles sur les deux premiers éléments de la liste separateurs
-   for sep in separateurs[:NN]:# on itère sur les deux premiers séparateurs
+def parser_contenu_tag(contenu_tag, dico_tag, tag_isi_current, longueur_tag, i=0):
+   """
+   on retire le dit tag du contenu si on n'a pas déjà effectué une étape de découpage sur notre chaine, cas C1
+
+   """
+   contenu_tag = contenu_tag[longueur_tag:]
+   #ce sont les séparateurs déclarés dans le fichier de paramètre
+   separateurs = dico_tag[tag_isi_current][1]
+   # le nombre de séparateurs, c'est le nombre de valeurs non nulles sur les deux premiers éléments de la liste separateurs
+   NN = len(separateurs[:2])-separateurs[:2].count('')
+   # on itère sur les deux premiers séparateurs
+   for sep in separateurs[:NN]:
       if '***' in sep:
-         sep = sep.split('***')[i]#au cas où il y aurait différent séparateur au même niveau ex: C1: , et ;
+         #au cas où il y aurait différent séparateur au même niveau ex: C1: , et ;
+         sep = sep.split('***')[i]
       infos = []
-      if type(contenu_tag) != list:# si contenu_tag est une simple chaîne de caractère on crée une liste d'un élément contenant cette chaîne de caractère
+      # si contenu_tag est une simple chaîne de caractère on crée une liste d'un élément contenant cette chaîne de caractère
+      if type(contenu_tag) != list:
          infosep = get_info_split(contenu_tag,sep)
          infos = infosep
       else:
-         for sub_contenu_tag in contenu_tag[:]:#on itère sur chaque élément de contenu_tag, bien ecrire contenu_tag[:], car sinon, la variable change au fur et à mesure en rajoutant [:], on fait une copie de la liste
+         #on itère sur chaque élément de contenu_tag, contenu_tag[:] fait une copie de la liste
+         for sub_contenu_tag in contenu_tag[:]:
             infosep = get_info_split(sub_contenu_tag,sep)
             infos.append(infosep)
       contenu_tag = infos
    contenu_tag_clean = clean(contenu_tag)
-   return contenu_tag_clean
+
+   return normalisell(contenu_tag_clean)
 
 def normalisell(variable):
    if len(variable)==0:
@@ -110,7 +121,11 @@ def divide(chaine,marqueur_cut,sep):
       right.append(ligne[cut:])
    return sep.join(left),sep.join(right)
 
-def main(corpus_name, bdd_name, dico_tag, limit=None, overwrite=False):
+def main(corpus_name, bdd_name, dico_tag, match_regexp, limit=None, overwrite=False):
+
+   match_regexp = re.compile(match_regexp, re.I|re.U)
+
+   match_fields = ["TI","AB"]
 
    mongodb = create_bdd(bdd_name)
    if overwrite is True and "notices" in mongodb.collection_names():
@@ -135,7 +150,7 @@ def main(corpus_name, bdd_name, dico_tag, limit=None, overwrite=False):
    for ligne in file_isi_lignes:# itere sur les lignes du corpus
       debut_tag = dico_tag['condition_debut_tag'][0]  # debut tag = condition expression régulière
       nfirst = ligne[:longueur_tag] # nprems = n première lettres de la ligne, n=longueur_tag
-      if re.match(debut_tag, ligne) != None  and nfirst !=tag_isi_current: # vérifie que le début de la ligne correspond bien à un tag qqu'il soit et que ce tag n'est pas une répétition (données type scopus ou medline)
+      if re.match(debut_tag, ligne) != None and nfirst != tag_isi_current: # vérifie que le début de la ligne correspond bien à un tag qqu'il soit et que ce tag n'est pas une répétition (données type scopus ou medline)
          intag=0 # fin d'un tag
          if tag_isi_current in tag_isi: # condition pour éviter de renvoyer un contenu vide qui correspondrait à un tag précédent ne faisant pas partie de la sélection de parameters.ini
             if len(dico_tag[tag_isi_current][1]) > 2:#cas spécial, il faut spliter la chaine avant toute chose
@@ -143,13 +158,9 @@ def main(corpus_name, bdd_name, dico_tag, limit=None, overwrite=False):
                contenu_tag_left += tag_isi_current
                contenu_tag_right += tag_isi_current
                for j,contenu_tag in enumerate([contenu_tag_left,contenu_tag_right]):
-                  content_tag = parser_contenu_tag(contenu_tag,notice,dico_tag,tag_isi_current,longueur_tag,j) #on récupère alors le contenu parsé du tag en question
-                  content_tag_norm = normalisell(content_tag) #eventuellement on peut normaliser tous les contenus de façon à ce qu'ils soient tous des listes de listes:
-                  notice[tag_isi_current +'uuu'+str(j)] =  content_tag_norm
+                  notice[tag_isi_current +'uuu'+str(j)] = parser_contenu_tag(contenu_tag, dico_tag, tag_isi_current, longueur_tag)
             else:
-               content_tag = parser_contenu_tag(contenu_tag,notice,dico_tag,tag_isi_current,longueur_tag) #on récupère alors le contenu parsé du tag en question
-               content_tag_norm = normalisell(content_tag) #eventuellement on peut normaliser tous les contenus de façon à ce qu'ils soient tous des listes de listes:
-               notice[tag_isi_current] = content_tag_norm
+               notice[tag_isi_current] = parser_contenu_tag(contenu_tag, dico_tag, tag_isi_current, longueur_tag)
             tag_isi_current = '?'
       if nfirst in tag_isi and nfirst != tag_isi_current: #on vérifie que le tag du début de la ligne fait bien partie des tags pertinents et que le tag en question n'est pas une répétition (données type scopus ou medline)
          intag = 1 # on ouvre un nouveau tag
@@ -166,5 +177,19 @@ def main(corpus_name, bdd_name, dico_tag, limit=None, overwrite=False):
             print ( "%d notices indexés"%total_imported)
          notice = {} #on initialise la variable notice qui regroupe dans un dictionnaire les valeurs de la notice courante pour toutes les clés déclarées
       if nfirst == tag_end:
-         mongodb.notices.save(notice)
+         filter_notice(match_fields, match_regexp, notice, mongodb)
    return total_imported
+
+def filter_notice(match_fields, match_regexp, notice, mongodb):
+   """
+   search for an expression into the required fields of notice
+   """
+   for tag in match_fields:
+      if tag not in notice:
+         logging.debug("notice incomplete")
+         return
+   for tag in match_fields:
+      if match_regexp.match(notice[tag]):
+         logging.debug("matched %s in notice %s"%(str(match_regexp),notice['TI']))
+         mongodb.notices.save(notice)
+         return

@@ -18,10 +18,12 @@ import yaml
 from glob import glob
 import gzip
 import re
+import codecs
 
 if __name__ == "__main__":
-   config = yaml.safe_load( file( "config.yaml", 'rU' ) )
-   data_path = glob(config['config']['data_path'])
+   config = yaml.load( open( "config.yaml", 'rU' ) )
+   data_path = glob(config['data_path'])
+
    total=0
    print config
 

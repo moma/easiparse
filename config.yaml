@@ -1,7 +1,40 @@
 ---
-data_path: "/data/tina/Thomson/*"
-bdd_name: "isi"
-isi_spec: "input/parameters/parameters_isi.ini"
-match_regexp: "\bembryonic\b|\bembryo\b"
-isi:
-   - AU: "^(.*)$"
+config:
+    data_path: "input/*"
+    bdd_name: "isi"
+    match_regexp: ".*"
+    isi:
+        begin: "UT"
+        end: "EX"
+        tag_length: 3
+        multiline: "--"
+        fields:
+            UT: ""
+            AR: ""
+            AU: ~
+            TI: ""
+            DT: ""
+            DE: ~
+            LA: ""
+            AB: ""
+            #DT 	ISIDT
+            #AF 	ISIAF	$ligne$
+            #J9 	ISIJOURNAL
+            #ID 	ISIID	;
+            #C1 	ISIC1	$ligne$	***,	[***]
+            #RP 	ISIRP	,
+            #FU 	ISIFU	;
+            #CR 	ISICR	$ligne$	,
+            #TC 	ISITC
+            #SO 	ISISO
+            #PY 	ISIpubdate
+            #VL 	ISIVolume
+            #BP 	ISIPage
+            #SC 	ISISC	;
+            #UT 	ISIUT
+    extraction_fields:
+        - "TI"
+        - "AB"
+    required_fields:
+        - "TI"
+    output_file: "easioutput.txt"

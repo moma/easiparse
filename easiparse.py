@@ -20,31 +20,24 @@ import gzip
 import re
 
 if __name__ == "__main__":
-    parameters_user = yaml.safe_load( file( "config.yaml", 'rU' ) )
-    
-    bdd_name =  parameters_user['bdd_name']
-    data_path = glob(parameters_user['data_path'])
-    param_corpus_name = parameters_user['isi_spec']
-    match_regexp = parameters_user['match_regexp']
+   config = yaml.safe_load( file( "config.yaml", 'rU' ) )
+   data_path = glob(config['config']['data_path'])
+   total=0
+   print config
 
-    dico_tag = importer.lire_parametre_ini(param_corpus_name)
-    total=0
-    
-    print data_path
-    
-    for filepath in data_path:
-        if re.match(r".+\.gz", filepath, re.I) is not None:
-            isi_file = gzip.open(filepath,'rb')
-        else:
-            continue
-        print "%s"%isi_file
-        subtotal = importer.main(
-            isi_file, 
-            bdd_name, 
-            dico_tag, 
-            match_regexp, 
-            limit=100, 
-            overwrite=True
-        )
-        total += subtotal
-    print("TOTAL = %d indexed notices"%total)
+   for filepath in data_path:
+      if re.match(r".+\.gz", filepath, re.I) is not None:
+         isi_file = gzip.open(filepath,'rb')
+         #isi_file = open(filepath,'rU')
+      else:
+         continue
+
+      subtotal = importer.main(
+         isi_file,
+         config,
+         limit=100,
+         overwrite=True
+      )
+      total += subtotal
+      print("extracted %d matching notices in %s"%(subtotal,isi_file))
+   print("TOTAL = %d indexed notices within the path"%total)

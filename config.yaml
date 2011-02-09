@@ -1,7 +1,7 @@
 ---
 data_path: "input/*"
 bdd_name: "isi"
-match_regexp: \brapid\b
+match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
 isi:
     begin: "UT"
     end: "EX"
@@ -16,6 +16,7 @@ isi:
         DE: ~
         LA: ""
         AB: ""
+        AA: ""
         #DT 	ISIDT
         #AF 	ISIAF	$ligne$
         #J9 	ISIJOURNAL

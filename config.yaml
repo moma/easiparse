@@ -8,8 +8,10 @@ isi:
     tag_length: 3
     multiline: "--"
     fields:
-        UT: ""
-        AR: ""
+        #UT: ""
+        T9: ""
+        T2: ""
+        AR: ~
         AU: ~
         TI: ""
         DT: ""
@@ -17,21 +19,41 @@ isi:
         LA: ""
         AB: ""
         AA: ""
-        #DT 	ISIDT
+    subfields:
+        C1:
+            fields:
+                NU: ""
+                NY: ""
+                NF: ""
+                NC: ""
+            end: "EA"
+        CP:
+            fields:
+                '/A': ""
+                '/Y': ""
+                '/W': ""
+                '/N': ""
+                '/C': ""
+            end: "EC"
+        CR:
+            fields:
+                R9: ""
+                AR: ~
+                '/A': ""
+                '/Y': ""
+                '/W': ""
+                '/I': ""
+            end: "EC"
         #AF 	ISIAF	$ligne$
         #J9 	ISIJOURNAL
-        #ID 	ISIID	;
-        #C1 	ISIC1	$ligne$	***,	[***]
         #RP 	ISIRP	,
         #FU 	ISIFU	;
-        #CR 	ISICR	$ligne$	,
         #TC 	ISITC
         #SO 	ISISO
         #PY 	ISIpubdate
         #VL 	ISIVolume
         #BP 	ISIPage
         #SC 	ISISC	;
-        #UT 	ISIUT
 extraction_fields:
     - "TI"
     - "AB"

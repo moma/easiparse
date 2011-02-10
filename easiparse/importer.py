@@ -176,8 +176,6 @@ def main(file_isi, config, limit=None, overwrite=False):
    if overwrite is True and "notices" in mongodb.collection_names():
       mongodb.drop_collection("notices")
 
-   mongodb.notices.ensure_index("UT")
-
    begin_tag = re.compile(config['isi']['begin']+"\s.*$")
    end_tag = re.compile(config['isi']['end']+"\s.*$")
    config['match_regexp'] = re.compile(config['match_regexp'])

@@ -25,11 +25,16 @@ if __name__ == "__main__":
    data_path = glob(config['data_path'])
 
    total=0
+   number_files=0
    print config
 
    for filepath in data_path:
       if re.match(r".+\.gz", filepath, re.I) is not None:
-         isi_file = gzip.open(filepath,'rb')
+         try:
+            isi_file = gzip.open(filepath,'rb')
+         except Exception, exc:
+            print "BAD GZIP at %s"%filepath
+            continue
          #isi_file = open(filepath,'rU')
       else:
          continue
@@ -37,9 +42,10 @@ if __name__ == "__main__":
       subtotal = importer.main(
          isi_file,
          config,
-         limit=100,
-         overwrite=True
+         limit=None,
+          overwrite=True
       )
       total += subtotal
-      print("extracted %d matching notices in %s"%(subtotal,isi_file))
+      number_files += 1
+      print("extracted %d matching notices in %s (done %d files, %d total notices)"%(subtotal, isi_file, number_files, total))
    print("TOTAL = %d indexed notices within the path"%total)

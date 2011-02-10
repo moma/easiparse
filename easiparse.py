@@ -16,9 +16,9 @@
 from easiparse import importer
 import yaml
 from glob import glob
-import gzip
 import re
 import codecs
+import pymongo
 
 if __name__ == "__main__":
    config = yaml.load( open( "config.yaml", 'rU' ) )
@@ -28,22 +28,27 @@ if __name__ == "__main__":
    number_files=0
    print config
 
+   mongodb = pymongo.Connection(config['mongo_host'],\
+           config['mongo_port'])[config['mongo_db_name']]
+   output_file = open( config['output_file'], "w+" )
+
    for filepath in data_path:
-      if re.match(r".+\.gz", filepath, re.I) is not None:
+      if re.match(r".+\.isi", filepath, re.I) is not None:
          try:
-            isi_file = gzip.open(filepath,'rb')
+            isi_file = open(filepath,'rU')
          except Exception, exc:
-            print "BAD GZIP at %s"%filepath
+            print "Error reading file %s"%filepath
             continue
-         #isi_file = open(filepath,'rU')
       else:
          continue
 
       subtotal = importer.main(
          isi_file,
          config,
+         output_file,
+         mongodb,
          limit=None,
-          overwrite=True
+         overwrite=True
       )
       total += subtotal
       number_files += 1

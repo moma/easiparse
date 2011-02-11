@@ -1,5 +1,5 @@
 ---
-data_path: "input/*"
+data_path: "input/"
 bdd_name: "isi"
 match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
 isi:
@@ -19,6 +19,7 @@ isi:
         LA: ""
         AB: ""
         AA: ""
+        RY: ""
     subfields:
         C1:
             fields:
@@ -44,16 +45,6 @@ isi:
                 '/W': ""
                 '/I': ""
             end: "EC"
-        #AF 	ISIAF	$ligne$
-        #J9 	ISIJOURNAL
-        #RP 	ISIRP	,
-        #FU 	ISIFU	;
-        #TC 	ISITC
-        #SO 	ISISO
-        #PY 	ISIpubdate
-        #VL 	ISIVolume
-        #BP 	ISIPage
-        #SC 	ISISC	;
 extraction_fields:
     - "TI"
     - "AB"

@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
-import os, sys
 import re
-
 import logging
 logging.basicConfig(level=logging.WARNING, format="%(levelname)-8s %(message)s")
 import os, sys
 import codecs
 import exceptions
-
-from pymongo import Connection
-MONGODB_PORT = 27017
-
 
 def notice_to_file(output_file, notice_lines):
    """
@@ -166,15 +160,11 @@ class SubRecord(Notice):
       self.__delattr__('config')
       self.__delattr__('last_tag')
 
-def main(file_isi, config, limit=None, overwrite=False):
+
+def main(file_isi, config, output_file, mongodb, limit=None, overwrite=False):
    """
    Parses, filters, and save
    """
-   output_file = codecs.open( config['output_file'], "w+", encoding="utf_8", errors='replace' )
-   mongodb = Connection("localhost", MONGODB_PORT)[config['bdd_name']]
-
-   if overwrite is True and "notices" in mongodb.collection_names():
-      mongodb.drop_collection("notices")
 
    begin_tag = re.compile(config['isi']['begin']+"\s.*$")
    end_tag = re.compile(config['isi']['end']+"\s.*$")

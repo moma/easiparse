@@ -3,6 +3,7 @@ data_path: "input/"
 bdd_name: "isi"
 match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
 isi:
+    # unique: key
     begin: "UT"
     end: "EX"
     tag_length: 3

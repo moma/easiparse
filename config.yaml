@@ -1,20 +1,21 @@
 ---
-data_path: "/data/tina/Thomson/*.isi"
+data_path: "/data/tina/Thomson/corrected/*.isi"
 mongo_db_name: "isi"
 mongo_host: "localhost"
 mongo_port: 27017
 match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
 isi:
-    begin: "UT"
+    begin: "UT" 
     end: "EX"
     tag_length: 3
     multiline: "--"
     fields:
         #UT: ""
-        T9: "" 
+        T9: ""  
         T2: ""
         AR: ~
         AU: ~
+        RY: ""
         TI: ""
         DT: ""
         DE: ~
@@ -45,7 +46,7 @@ isi:
                 '/Y': ""
                 '/W': ""
                 '/I': ""
-            end : "EC"
+            end  : "EC"
         #AF 	ISIAF	$ligne$
         #J9 	ISIJOURNAL
         #RP 	ISIRP	,
@@ -57,8 +58,8 @@ isi:
         #BP 	ISIPage
         #SC 	ISISC	;
 extraction_fields:
-    - "TI"
+    - "TI" 
     - "AB"
 required_fields:
     - "TI"
-output_file: "/data/tina/Thomson/embryo_data.txt"
+output_file: "/data/tina/Thomson/embryo_data_corrected.txt"

@@ -10,10 +10,10 @@ def notice_to_file(output_file, notice_lines):
    """
    Copies notice lines to output file
    """
-   for line in notice_lines:
-      output_file.write( line )
-   logging.debug("written %d lines to %s"%(len(notice_lines),output_file))
-
+   #for line in notice_lines:
+   #   output_file.write( line )
+   #logging.debug("written %d lines to %s"%(len(notice_lines),output_file))
+   pass
 
 class NoticeRejected(exceptions.Exception):
    pass
@@ -21,7 +21,6 @@ class NoticeRejected(exceptions.Exception):
 
 class Notice(object):
    def __init__(self, config, lines):
-
       self.config = config
       tag_length = config['isi']['tag_length']
       multiline = config['isi']['multiline']
@@ -33,10 +32,10 @@ class Notice(object):
          if i == self.total_lines: break
          line = lines[i]
          tag = self.getTag(line)
-         if tag == "UT":
-            self.__dict__["_id"] = self.getLine(line)
-            i+=1
-            continue
+         #if tag == "UT":
+         #   self.__dict__["_id"] = self.getLine(line)
+         #   i+=1
+         #   continue
          if tag not in fields.keys() and tag != multiline:
             if tag in subfields.keys():
                i = self.appendSubfield(tag, i, lines)
@@ -88,18 +87,18 @@ class Notice(object):
             raise NoticeRejected("notice incomplete")
             return 0
 
-      for tag in extraction_fields:
-         if tag not in self.__dict__: continue
-         if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-            if match_regexp.search(self.__dict__[tag]) is not None:
-               return 1
-         elif type(self.__dict__[tag]) == list:
-            for field in self.__dict__[tag]:
-               if match_regexp.search(field) is not None:
-                  return 1
-      # anyway : reject
-      raise NoticeRejected("notice did not match")
-      return 0
+      #for tag in extraction_fields:
+      #   if tag not in self.__dict__: continue
+      #   if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
+      #      if match_regexp.search(self.__dict__[tag]) is not None:
+      #         return 1
+      #   elif type(self.__dict__[tag]) == list:
+      #      for field in self.__dict__[tag]:
+      #         if match_regexp.search(field) is not None:
+      #            return 1
+      ## anyway : reject
+      #raise NoticeRejected("notice did not match")
+      #return 0
 
    def normalize(self, field_rules):
       for tag, rule in field_rules.iteritems():

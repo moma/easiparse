@@ -1,16 +1,17 @@
 ---
-data_path: "/data/tina/Thomson/corrected/*.isi"
-mongo_db_name: "isi"
+data_path: "/data/tina/Thomson/embryo_data_224.isi.txt"
+mongo_db_name: "mdts11"
 mongo_host: "localhost"
 mongo_port: 27017
-match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
+#match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
+match_regexp: .*
 isi:
-    begin: "UT" 
+    begin: "UT"  
     end: "EX"
     tag_length: 3
     multiline: "--"
     fields:
-        #UT: ""
+        UT: "" 
         T9: ""  
         T2: ""
         AR: ~
@@ -28,16 +29,16 @@ isi:
                 NU: ""
                 NY: ""
                 NF: ""
-                NC: ""
-            end: "EA"
+                NC : ""
+            end:  "EA"
         CP:
             fields:
                 '/A': ""
                 '/Y': ""
                 '/W': ""
                 '/N': ""
-                '/C': ""
-            end: "EC"
+                '/C ': ""
+            end:  "EC"
         CR:
             fields:
                 R9: ""
@@ -45,8 +46,8 @@ isi:
                 '/A': ""
                 '/Y': ""
                 '/W': ""
-                '/I': ""
-            end  : "EC"
+                '/I' : ""
+            end   : "EC"
         #AF 	ISIAF	$ligne$
         #J9 	ISIJOURNAL
         #RP 	ISIRP	,

@@ -10,9 +10,9 @@ def notice_to_file(output_file, notice_lines):
    """
    Copies notice lines to output file
    """
-   #for line in notice_lines:
-   #   output_file.write( line )
-   #logging.debug("written %d lines to %s"%(len(notice_lines),output_file))
+   for line in notice_lines:
+      output_file.write( line )
+   logging.debug("written %d lines to %s"%(len(notice_lines),output_file))
    pass
 
 class NoticeRejected(exceptions.Exception):
@@ -43,7 +43,6 @@ class Notice(object):
             else:
                i+=1
                continue
-
          self.dispatchValidLine(tag, line)
          i+=1
 
@@ -87,18 +86,18 @@ class Notice(object):
             raise NoticeRejected("notice incomplete")
             return 0
 
-      #for tag in extraction_fields:
-      #   if tag not in self.__dict__: continue
-      #   if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-      #      if match_regexp.search(self.__dict__[tag]) is not None:
-      #         return 1
-      #   elif type(self.__dict__[tag]) == list:
-      #      for field in self.__dict__[tag]:
-      #         if match_regexp.search(field) is not None:
-      #            return 1
-      ## anyway : reject
-      #raise NoticeRejected("notice did not match")
-      #return 0
+      for tag in extraction_fields:
+         if tag not in self.__dict__: continue
+         if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
+            if match_regexp.search(self.__dict__[tag]) is not None:
+               return 1
+         elif type(self.__dict__[tag]) == list:
+            for field in self.__dict__[tag]:
+               if match_regexp.search(field) is not None:
+                  return 1
+      # anyway : reject
+      raise NoticeRejected("notice did not match")
+      return 0
 
    def normalize(self, field_rules):
       for tag, rule in field_rules.iteritems():
@@ -193,7 +192,6 @@ def main(file_isi, config, output_file, mongodb, limit=None, overwrite=False):
          if limit is not None and total_imported >= limit:
             return total_imported
       else:
-         #logging.debug("line skipped : not between notice TAGS")
          continue
 
    return total_imported

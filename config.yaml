@@ -1,10 +1,10 @@
 ---
-data_path: "/data/tina/Thomson/embryo_data_224.isi.txt"
-mongo_db_name: "mdts11"
+data_path: "/data/tina/Thomson/*.isi"
+mongo_db_name: "mdts11_isi"
 mongo_host: "localhost"
 mongo_port: 27017
-#match_regexp: \bembryolog(y|ies)\b|\bembryo(s)?\b|\bembryonic(s)?\b
-match_regexp: .*
+match_regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.?\b
+#match_regexp: .*
 isi:
     begin: "UT"  
     end: "EX"
@@ -64,4 +64,4 @@ extraction_fields:
     - "AB"
 required_fields:
     - "TI"
-output_file: "/data/tina/Thomson/embryo_data_corrected.txt"
+output_file: "/data/tina/Thomson/embryo_data_20110212.txt"

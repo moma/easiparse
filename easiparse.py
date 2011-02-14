@@ -54,5 +54,6 @@ if __name__ == "__main__":
       )
       total += subtotal
       number_files += 1
-      print("extracted %d matching notices in %s (done %d files, %d total notices)"%(subtotal, isi_file, number_files, total))
+      print("extracted %d matching notices in %s (done %d files, %d total notices)"\
+            %(subtotal, isi_file, number_files, total))
    print("TOTAL = %d indexed notices within the path"%total)

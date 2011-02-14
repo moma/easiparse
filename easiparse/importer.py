@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import logging
-logging.basicConfig(level=logging.WARNING, format="%(levelname)-8s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 import os, sys
 import codecs
 import exceptions
@@ -18,92 +18,41 @@ def notice_to_file(output_file, notice_lines):
 class NoticeRejected(exceptions.Exception):
    pass
 
-
-class Notice(object):
-   def __init__(self, config, lines):
+class Record(object):
+   def __init__(self, config, lines, recordtype, fieldsdefinition):
       self.config = config
-      tag_length = config['isi']['tag_length']
-      multiline = config['isi']['multiline']
-      fields = config['isi']['fields']
-      subfields = config['isi']['subfields']
-      i = 0
-      self.total_lines = len(lines)
-      while 1:
-         if i == self.total_lines: break
-         line = lines[i]
-         tag = self.getTag(line)
-         #if tag == "UT":
-         #   self.__dict__["_id"] = self.getLine(line)
-         #   i+=1
-         #   continue
-         if tag not in fields.keys() and tag != multiline:
-            if tag in subfields.keys():
-               i = self.appendSubfield(tag, i, lines)
-               continue
-            else:
-               i+=1
-               continue
-         self.dispatchValidLine(tag, line)
-         i+=1
-
-      self.normalize(fields)
+      self.recordtype = recordtype
+      self.fields = fieldsdefinition
+      self.last_tag = ""
+      self._walkLines(lines)
+      self.normalize()
       self.filter()
 
+   def _walkLines(self, lines):
+      tag_length = self.config['isi']['tag_length']
+      multiline = self.config['isi']['multiline']
+      for line in lines:
+         tag = self.getTag(line)
+         if tag == self.config['isi'][self.recordtype]['key']:
+            self.__dict__["_id"] = self.getLine(line)
+         if tag not in self.fields.keys() and tag != multiline:
+            continue
+         self.dispatchValidLine(tag, line)
 
-   def appendSubfield(self, tag, i, lines):
-      sublines=[]
-      i += 1
-      while 1:
-         if i == self.total_lines:
-            raise NoticeRejected("reached EOF without closing a Notice")
-         subline = lines[i]
-         subtag = self.getTag(subline)
-         if subtag == self.config['isi']['subfields'][tag]['end']:
-            subfield = SubRecord(self.config, tag, sublines).__dict__
-            if tag in self.__dict__.keys():
-               self.__dict__[tag] += [subfield]
-            else:
-               self.__dict__[tag] = [subfield]
-            i+=1
-            return i
-         else:
-            sublines += [subline]
-         i+=1
-      return i
-
-   def filter(self):
-      """
-      search for an expression into the required fields of notice
-      """
-      match_regexp = self.config['match_regexp']
-      required_fields = self.config['required_fields']
-      extraction_fields = self.config['extraction_fields']
-      self.__delattr__('total_lines')
-      self.__delattr__('last_tag')
-      self.__delattr__('config')
-      for tag in required_fields:
-         if tag not in self.__dict__:
-            raise NoticeRejected("notice incomplete")
-            return 0
-
-      for tag in extraction_fields:
-         if tag not in self.__dict__: continue
-         if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-            if match_regexp.search(self.__dict__[tag]) is not None:
-               return 1
-         elif type(self.__dict__[tag]) == list:
-            for field in self.__dict__[tag]:
-               if match_regexp.search(field) is not None:
-                  return 1
-      # anyway : reject
-      raise NoticeRejected("notice did not match")
-      return 0
-
-   def normalize(self, field_rules):
-      for tag, rule in field_rules.iteritems():
+   def normalize(self):
+      for tag, rule in self.fields.iteritems():
          if tag not in self.__dict__.keys(): continue
          if type(rule) == str:
             self.__dict__[tag] = rule.join(self.__dict__[tag])
+
+   def filter(self):
+      """
+      clean unwanted attributes
+      """
+      self.__delattr__('config')
+      self.__delattr__('last_tag')
+      self.__delattr__('recordtype')
+      self.__delattr__('fields')
 
    def appendLine(self, tag, line):
       if tag in self.__dict__.keys():
@@ -137,61 +86,168 @@ class Notice(object):
       else:
          self.appendLine(self.last_tag, stripline)
 
-class SubRecord(Notice):
-   def __init__(self, config, tag, sublines):
-      self.config = config
-      tag_length = config['isi']['tag_length']
-      multiline = config['isi']['multiline']
-      fields = config['isi']['subfields'][tag]['fields']
-      for line in sublines:
+class Notice(Record):
+   def __init__(self, config, lines, recordtype, fieldsdefinition):
+      Record.__init__(self, config, lines, recordtype, fieldsdefinition)
+
+   def _walkLines(self, lines):
+      tag_length = self.config['isi']['tag_length']
+      multiline = self.config['isi']['multiline']
+      if 'subfields' in self.config['isi'][self.recordtype]:
+         subfields = self.config['isi'][self.recordtype]['subfields']
+      i = 0
+      self.total_lines = len(lines)
+      while 1:
+         if i == self.total_lines: break
+         line = lines[i]
          tag = self.getTag(line)
-         if tag not in fields.keys() and tag != multiline:
+         if tag == self.config['isi'][self.recordtype]['key']:
+            self.__dict__["_id"] = self.getLine(line)
+            i+=1
             continue
+         if tag not in self.fields.keys() and tag != multiline:
+            if 'subfields' in self.config['isi'][self.recordtype] and tag in subfields.keys():
+               i = self.appendSubfield(tag, i, lines)
+               continue
+            else:
+               i+=1
+               continue
          self.dispatchValidLine(tag, line)
-      self.normalize(fields)
-      self.filter()
+         i+=1
+
+   def appendSubfield(self, tag, i, lines):
+      sublines=[]
+      i += 1
+      while 1:
+         if i == self.total_lines:
+            raise NoticeRejected("reached EOF without closing a Notice")
+         subline = lines[i]
+         subtag = self.getTag(subline)
+         if subtag == self.config['isi'][self.recordtype]['subfields'][tag]['end']:
+            subfield = SubRecord(
+               self.config,
+               sublines,
+               tag,
+               self.config['isi'][self.recordtype]['subfields'][tag]['fields']
+            ).__dict__
+            if tag in self.__dict__.keys():
+               self.__dict__[tag] += [subfield]
+            else:
+               self.__dict__[tag] = [subfield]
+            i+=1
+            return i
+         else:
+            sublines += [subline]
+         i+=1
+      return i
 
    def filter(self):
       """
-      clean unwanted attributes
+      search for an expression into the required fields of notice
       """
-      self.__delattr__('config')
+      match_regexp = self.config['match_regexp']
+      required_fields = self.config['required_fields']
+      extraction_fields = self.config['extraction_fields']
+      self.__delattr__('total_lines')
       self.__delattr__('last_tag')
+      self.__delattr__('config')
+      self.__delattr__('fields')
+
+      for tag in required_fields:
+         if tag not in self.__dict__:
+            raise NoticeRejected("notice incomplete")
+            return 0
+
+      for tag in extraction_fields:
+         if tag not in self.__dict__: continue
+         if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
+            if match_regexp.search(self.__dict__[tag]) is not None:
+               return 1
+         elif type(self.__dict__[tag]) == list:
+            for field in self.__dict__[tag]:
+               if match_regexp.search(field) is not None:
+                  return 1
+      # anyway : reject
+      raise NoticeRejected("notice did not match")
+      return 0
 
 
-def main(file_isi, config, output_file, mongodb, limit=None, overwrite=False):
+class SubRecord(Record):
+   def __init__(self, config, sublines, parenttag, subfieldsdefinition):
+      Record.__init__(self, config, sublines, parenttag, subfieldsdefinition)
+
+   def _walkLines(self, sublines):
+      tag_length = self.config['isi']['tag_length']
+      multiline = self.config['isi']['multiline']
+      for line in sublines:
+         tag = self.getTag(line)
+         if tag not in self.fields.keys() and tag != multiline:
+            continue
+         self.dispatchValidLine(tag, line)
+
+
+def main(file_isi, config, output_file, mongodb, limit=None):
    """
    Parses, filters, and save
    """
+   issue_begin = re.compile(config['isi']['issues']['begin']+"\s.*$")
+   issue_end = re.compile(config['isi']['issues']['end']+"\s.*$")
+   begin_tag = re.compile(config['isi']['items']['begin']+"\s.*$")
+   end_tag = re.compile(config['isi']['items']['end']+"\s.*$")
 
-   begin_tag = re.compile(config['isi']['begin']+"\s.*$")
-   end_tag = re.compile(config['isi']['end']+"\s.*$")
    config['match_regexp'] = re.compile(config['match_regexp'])
+
    file_lines = []
+   issue_lines = []
    in_notice = 0
+   in_issue = 0
+   issue = None
    total_imported = 0
 
    # itere sur les lignes du corpus
    for line in file_isi:
+
+
       if in_notice == 1 and end_tag.match(line) is None:
          file_lines += [line]
-      elif begin_tag.match(line) is not None and in_notice == 0:
+         continue
+
+      if begin_tag.match(line) is not None and in_notice == 0:
+         # first time will save an issue object
+         if in_issue == 1:
+            in_issue = 0
+            issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
+            notice_to_file(output_file, issue_lines)
+            mongodb.issues.save(issue.__dict__)
+
          in_notice = 1
          file_lines = [line]
-      elif end_tag.match(line) is not None and in_notice == 1:
+         continue
+
+      if end_tag.match(line) is not None and in_notice == 1:
          in_notice = 0
          file_lines += [line]
          try:
-            notice = Notice(config, file_lines)
+            notice = Notice(config, file_lines, 'items', config['isi']['items']['fields'])
             total_imported += 1
             notice_to_file(output_file, file_lines)
+            notice.__dict__['issue'] = issue.__dict__
             mongodb.notices.save(notice.__dict__)
+
          except NoticeRejected, nr:
             logging.debug("%s"%nr)
-            pass
+
          if limit is not None and total_imported >= limit:
             return total_imported
-      else:
+
+      if issue_begin.match(line) is not None:
+         in_issue = 1
+         issue_lines = [line]
          continue
 
+      if in_issue == 1:
+         issue_lines += [line]
+         continue
+
+   notice_to_file(output_file, ["RE\n"])
    return total_imported

@@ -42,8 +42,7 @@ if __name__ == "__main__":
          config,
          output_file,
          mongodb,
-         limit=None,
-         overwrite=True
+         limit=None
       )
       total += subtotal
       number_files += 1

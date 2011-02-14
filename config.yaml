@@ -1,67 +1,97 @@
 ---
-data_path: "/data/tina/Thomson/*.isi"
+data_path: "input/MN3A97OV"
 mongo_db_name: "mdts11_isi"
 mongo_host: "localhost"
 mongo_port: 27017
-match_regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.?\b
-#match_regexp: .*
+match_regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
+#match_regexp: to
 isi:
-    begin: "UT"  
-    end: "EX"
     tag_length: 3
     multiline: "--"
-    fields:
-        UT: "" 
-        T9: ""  
-        T2: ""
-        AR: ~
-        AU: ~
-        RY: ""
-        TI: ""
-        DT: ""
-        DE: ~
-        LA: ""
-        AB: ""
-        AA: ""
-        RY: ""
-    subfields:
-        C1:
-            fields:
-                NU: ""
-                NY: ""
-                NF: ""
-                NC : ""
-            end:  "EA"
-        CP:
-            fields:
-                '/A': ""
-                '/Y': ""
-                '/W': ""
-                '/N': ""
-                '/C ': ""
-            end:  "EC"
-        CR:
-            fields:
-                R9: ""
-                AR: ~
-                '/A': ""
-                '/Y': ""
-                '/W': ""
-                '/I': ""
-            end: "EC"
-        #AF 	ISIAF	$ligne$
-        #J9 	ISIJOURNAL
-        #RP 	ISIRP	,
-        #FU 	ISIFU	;
-        #TC 	ISITC
-        #SO 	ISISO
-        #PY 	ISIpubdate
-        #VL 	ISIVolume
-        #BP 	ISIPage
-        #SC 	ISISC	;
+    issues:
+        key: "UI"
+        begin: "UI"
+        end: "RE"
+        fields:
+            UI: ""
+            T1: ""
+            PW: ""
+            GA: ""
+            SQ: ""
+            PT: ""
+            SO: ""
+            JI: ""
+            J1: ""
+            J2: ""
+            J9: ""
+            CF: ~
+            SC: ~
+            SN: ""
+            SC: ""
+            BN: ""
+            BS: ""
+            PU: ""
+            PI: ""
+            PA: ""
+            VL: ""
+            IS: ""
+            PY: ""
+            PD: ""
+            SU: ""
+            SI: ""
+            PN: ""
+            TV: ""
+            IL: ""
+            LD: ""
+            IO: ""
+    items:
+        key: "UT"
+        begin: "UT"
+        end: "EX"
+        fields:
+            UT: ""
+            T9: ""  
+            T2: ""
+            AR: ~
+            AU: ~
+            RY: ""
+            TI: ""
+            DT: ""
+            DE: ~
+            LA: ""
+            AB: ""
+            AA: ""
+            RY: int
+        subfields:
+            C1:
+                fields:
+                    NU: ""
+                    NY: ""
+                    NF: ""
+                    NC : ""
+                end:  "EA"
+            CP:
+                fields:
+                    '/A': ""
+                    '/Y': ""
+                    '/W': ""
+                    '/N': ""
+                    '/C ': ""
+                end:  "EC"
+            CR:
+                fields:
+                    R9: ""
+                    AR: ~
+                    '/A': ""
+                    '/Y': ""
+                    '/W': ""
+                    '/I': ""
+                    'RS': ""
+                    '/V': ""
+                end: "EC"
 extraction_fields:
     - "TI" 
     - "AB"
 required_fields:
     - "TI"
-output_file: "/data/tina/Thomson/embryo_data_20110212.txt"
+output_file: "isi_raw_output.txt"

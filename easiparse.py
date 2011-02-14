@@ -16,8 +16,6 @@
 from easiparse import importer
 import yaml
 from glob import glob
-import re
-import codecs
 import pymongo
 
 if __name__ == "__main__":
@@ -30,18 +28,13 @@ if __name__ == "__main__":
 
    mongodb = pymongo.Connection(config['mongo_host'],\
            config['mongo_port'])[config['mongo_db_name']]
-   #output_file = open( config['output_file'], "w+" )
-   output_file = open( "text.txt", "w+" )
+   output_file = open( config['output_file'], "w+" )
 
    for filepath in data_path:
-      #if re.match(r".+\.isi", filepath, re.I) is not None:
-      if re.match(r".+\.txt", filepath, re.I) is not None:
-         try:
-            isi_file = open(filepath,'rU')
-         except Exception, exc:
-            print "Error reading file %s"%filepath
-            continue
-      else:
+      try:
+         isi_file = open(filepath,'rU')
+      except Exception, exc:
+         print "Error reading file %s"%filepath
          continue
 
       subtotal = importer.main(

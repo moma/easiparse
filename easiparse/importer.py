@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import logging
-logging.basicConfig(level=logging.WARNING, format="%(levelname)-8s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 import os, sys
 import codecs
 import exceptions
@@ -12,7 +12,6 @@ def notice_to_file(output_file, notice_lines):
     """
     for line in notice_lines:
         output_file.write( line )
-    logging.debug("written %d lines to %s"%(len(notice_lines),output_file))
     pass
 
 class NoticeRejected(exceptions.Exception):
@@ -145,7 +144,7 @@ class Notice(Record):
         """
         search for an expression into the required fields of notice
         """
-        match_regexp = self.config['match_regexp']
+        #match_regexp = self.config['match_regexp']
         required_fields = self.config['required_fields']
         extraction_fields = self.config['extraction_fields']
         self.__delattr__('total_lines')
@@ -157,19 +156,19 @@ class Notice(Record):
             if tag not in self.__dict__:
                 raise NoticeRejected("notice incomplete")
                 return 0
-
-        for tag in extraction_fields:
-            if tag not in self.__dict__: continue
-            if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-                if match_regexp.search(self.__dict__[tag]) is not None:
-                    return 1
-            elif type(self.__dict__[tag]) == list:
-                for field in self.__dict__[tag]:
-                    if match_regexp.search(field) is not None:
-                        return 1
-        # anyway : reject
-        raise NoticeRejected("notice did not match")
-        return 0
+        return 1
+        #for tag in extraction_fields:
+        #    if tag not in self.__dict__: continue
+        #    if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
+        #        if match_regexp.search(self.__dict__[tag]) is not None:
+        #            return 1
+        #    elif type(self.__dict__[tag]) == list:
+        #        for field in self.__dict__[tag]:
+        #            if match_regexp.search(field) is not None:
+        #                return 1
+        ## anyway : reject
+        #raise NoticeRejected("notice did not match")
+        #return 0
 
 
 class SubRecord(Record):
@@ -195,7 +194,7 @@ def main(file_isi, config, output_file, mongodb, limit=None):
     begin_tag = re.compile(config['isi']['items']['begin']+"\s.*$")
     end_tag = re.compile(config['isi']['items']['end']+"\s.*$")
 
-    config['match_regexp'] = re.compile(config['match_regexp'])
+    #config['match_regexp'] = re.compile(config['match_regexp'])
 
     file_lines = []
     issue_lines = []
@@ -216,7 +215,7 @@ def main(file_isi, config, output_file, mongodb, limit=None):
                 in_issue = 0
                 issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
                 notice_to_file(output_file, issue_lines)
-                mongodb.issues.update({"_id":issue._id}, issue.__dict__, upsert=True)
+                mongodb.issues.update({"_id":issue.__dict__['_id']}, issue.__dict__, upsert=True)
 
             in_notice = 1
             file_lines = [line]
@@ -230,8 +229,7 @@ def main(file_isi, config, output_file, mongodb, limit=None):
                 total_imported += 1
                 notice_to_file(output_file, file_lines)
                 notice.__dict__['issue'] = issue.__dict__
-                mongodb.notices.update({"_id":notice._id}, notice.__dict__,\
-                        upsert=True)
+                mongodb.notices.update({"_id":notice.__dict__['_id']}, notice.__dict__, upsert=True)
 
             except NoticeRejected, nr:
                 logging.debug("%s"%nr)

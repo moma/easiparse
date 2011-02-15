@@ -18,37 +18,56 @@ import yaml
 from glob import glob
 import pymongo
 import codecs
+import threading
+from os.path import join
+
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
+
+class AsyncParse(threading.Thread):
+    def __init__(self, config, input_path, mongodb, limit=None):
+        threading.Thread.__init__(self)
+        self.config = config
+        self.input_path = input_path
+        self.mongodb = mongodb
+        self.limit = limit
+
+    def run(self):     
+        total = 0
+        number_files = 0
+        try:
+            isi_file = codecs.open(self.input_path, "rU", encoding="ascii",\
+                errors="replace" )
+        except Exception, exc:
+            logging.error( "Error reading file %s"%self.input_path )
+            return
+        output_file = codecs.open( join(self.config['output_path'], self.input_path),\
+            "w+", encoding="ascii", errors="replace")
+        
+        subtotal = importer.main(
+            isi_file,
+            config,
+            output_file,
+            mongodb,
+            limit=self.limit
+        )
+        total += subtotal
+        number_files += 1
+        logging.debug("extracted %d matching notices in %s (done %d files, %d total notices)"\
+            %(subtotal, isi_file, number_files, total))
 
 if __name__ == "__main__":
-   config = yaml.load( open( "config.yaml", 'rU' ) )
-   data_path = glob(config['data_path'])
+    config = yaml.load( open( "config.yaml", 'rU' ) )
+    glob_list = glob(config['data_path'])
+    
+    mongodb = pymongo.Connection(config['mongo_host'],\
+        config['mongo_port'])[config['mongo_db_name']]
+    
+    thread_list=[]
+    for input_path in glob_list:
+        asyncparser = AsyncParse(config, input_path, mongodb, None)
+        asyncparser.daemon=True
+        asyncparser.start()
+        thread_list += [asyncparser]
 
-   total=0
-   number_files=0
-   print config
-
-   mongodb = pymongo.Connection(config['mongo_host'],\
-           config['mongo_port'])[config['mongo_db_name']]
-   output_file = codecs.open( config['output_file'], "w+", encoding='ascii',\
-           errors='replace' )
-
-   for filepath in data_path:
-      try:
-         isi_file = codecs.open(filepath, "rU", encoding="ascii",\
-            errors='replace' )
-      except Exception, exc:
-         print "Error reading file %s"%filepath
-         continue
-
-      subtotal = importer.main(
-         isi_file,
-         config,
-         output_file,
-         mongodb,
-         limit=None
-      )
-      total += subtotal
-      number_files += 1
-      print("extracted %d matching notices in %s (done %d files, %d total notices)"\
-            %(subtotal, isi_file, number_files, total))
-   print("TOTAL = %d indexed notices within the path"%total)
+    #[logging.debug(parser) for parser in thread_list]

@@ -1,5 +1,14 @@
 ---
-data_path: "/data/tina/Thomson/IN3O044052.isi"
+data_path: "/data/tina/Thomson/*.isi"
+#    - "/data/tina/Thomson/IC3N000252.isi"
+#    - "/data/tina/Thomson/IC3O020126.isi"
+#    - "/data/tina/Thomson/IF3N*.isi"
+#    - "/data/tina/Thomson/IG3N*.isi"
+#    - "/data/tina/Thomson/IG3O*.isi"
+#    - "/data/tina/Thomson/IN3A*.isi"
+#    - "/data/tina/Thomson/IN3O*.isi"
+#    - "/data/tina/Thomson/MN2A*.isi"
+#    - "/data/tina/Thomson/MN3A*.isi"
 mongo_db_name: "easiparse_test"
 mongo_host: "localhost"
 mongo_port: 27017
@@ -94,5 +103,5 @@ extraction_fields:
     - "AB"
 required_fields:
     - "TI"
-output_file: "easiparse_output_test.isi.txt"
+output_path: "/data/tina/Thomson/easiparse_output/"
 #output_file: "/data/tina/Thomson/mdts11_embryonics_wos_raw_20100214.isi.txt"

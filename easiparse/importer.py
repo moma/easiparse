@@ -157,18 +157,19 @@ class Notice(Record):
                 raise NoticeRejected("notice incomplete")
                 return 0
         return 1
-        #for tag in extraction_fields:
-        #    if tag not in self.__dict__: continue
-        #    if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-        #        if match_regexp.search(self.__dict__[tag]) is not None:
-        #            return 1
-        #    elif type(self.__dict__[tag]) == list:
-        #        for field in self.__dict__[tag]:
-        #            if match_regexp.search(field) is not None:
-        #                return 1
-        ## anyway : reject
-        #raise NoticeRejected("notice did not match")
-        #return 0
+
+        for tag in extraction_fields:
+            if tag not in self.__dict__: continue
+            if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
+                if match_regexp.search(self.__dict__[tag]) is not None:
+                    return 1
+            elif type(self.__dict__[tag]) == list:
+                for field in self.__dict__[tag]:
+                    if match_regexp.search(field) is not None:
+                        return 1
+        # anyway : reject
+        raise NoticeRejected("notice did not match")
+        return 0
 
 
 class SubRecord(Record):
@@ -242,7 +243,7 @@ def main(file_isi, config, output_file, mongodb, limit=None):
             issue_lines = [line]
             continue
 
-        if in_issue == 1: 
+        if in_issue == 1:
             issue_lines += [line]
             continue
     # closes the issue item

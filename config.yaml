@@ -1,5 +1,5 @@
 ---
-data_path: "/data/tina/Thomson/*isi_easiparse_output.txt"
+data_path: "input/*.isi"
 #    - "/data/tina/Thomson/IC3N000252.isi"
 #    - "/data/tina/Thomson/IC3O020126.isi"
 #    - "/data/tina/Thomson/IF3N*.isi"
@@ -103,5 +103,5 @@ extraction_fields:
     - "AB"
 required_fields:
     - "TI"
-output_path: "/data/tina/Thomson/easiparse_output/"
-#output_file: "/data/tina/Thomson/mdts11_embryonics_wos_raw_20100214.isi.txt"
+#output_path: "/data/tina/Thomson/easiparse_output/"
+output_path: "output/"

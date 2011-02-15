@@ -17,6 +17,7 @@ from easiparse import importer
 import yaml
 from glob import glob
 import pymongo
+import codecs
 
 if __name__ == "__main__":
    config = yaml.load( open( "config.yaml", 'rU' ) )
@@ -28,11 +29,13 @@ if __name__ == "__main__":
 
    mongodb = pymongo.Connection(config['mongo_host'],\
            config['mongo_port'])[config['mongo_db_name']]
-   output_file = open( config['output_file'], "w+" )
+   output_file = codecs.open( config['output_file'], "w+", encoding='ascii',\
+           errors='replace' )
 
    for filepath in data_path:
       try:
-         isi_file = open(filepath,'rU')
+         isi_file = codecs.open(filepath, "rU", encoding="ascii",\
+            errors='replace' )
       except Exception, exc:
          print "Error reading file %s"%filepath
          continue

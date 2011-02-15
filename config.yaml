@@ -1,6 +1,6 @@
 ---
-data_path: "input/MN3A97OV"
-mongo_db_name: "mdts11_isi"
+data_path: "/data/tina/Thomson/IN3O044052.isi"
+mongo_db_name: "easiparse_test"
 mongo_host: "localhost"
 mongo_port: 27017
 match_regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
@@ -94,4 +94,5 @@ extraction_fields:
     - "AB"
 required_fields:
     - "TI"
-output_file: "isi_raw_output.txt"
+output_file: "easiparse_output_test.isi.txt"
+#output_file: "/data/tina/Thomson/mdts11_embryonics_wos_raw_20100214.isi.txt"

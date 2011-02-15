@@ -19,7 +19,7 @@ from glob import glob
 import pymongo
 import codecs
 import threading
-from os.path import join
+from os.path import join, split
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -41,7 +41,7 @@ class AsyncParse(threading.Thread):
         except Exception, exc:
             logging.error( "Error reading file %s"%self.input_path )
             return
-        output_file = codecs.open( join(self.config['output_path'], self.input_path),\
+        output_file = codecs.open( join(self.config['output_path'], split(self.input_path)[1]),\
             "w+", encoding="ascii", errors="replace")
         
         subtotal = importer.main(

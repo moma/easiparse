@@ -1,5 +1,5 @@
 ---
-data_path: "/data/tina/Thomson/*.isi"
+data_path: "/data/tina/Thomson/*isi_easiparse_output.txt"
 #    - "/data/tina/Thomson/IC3N000252.isi"
 #    - "/data/tina/Thomson/IC3O020126.isi"
 #    - "/data/tina/Thomson/IF3N*.isi"

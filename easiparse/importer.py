@@ -148,10 +148,10 @@ class Notice(Record):
         required_fields = self.config['required_fields']
         extraction_fields = self.config['extraction_fields']
         self.__delattr__('total_lines')
-        self.__delattr__('last_tag')
         self.__delattr__('config')
+        self.__delattr__('last_tag')
+        self.__delattr__('recordtype')
         self.__delattr__('fields')
-
         for tag in required_fields:
             if tag not in self.__dict__:
                 raise NoticeRejected("notice incomplete")

@@ -20,54 +20,50 @@ import pymongo
 import codecs
 import threading
 from os.path import join, split
+from twisted.internet import reactor
+reactor.suggestThreadPoolSize(30)
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
-class AsyncParse(threading.Thread):
-    def __init__(self, config, input_path, mongodb, limit=None):
-        threading.Thread.__init__(self)
-        self.config = config
-        self.input_path = input_path
-        self.mongodb = mongodb
-        self.limit = limit
+#class AsyncParse(threading.Thread):
+#    def __init__(self, config, input_path, mongodb, limit=None):
+#        threading.Thread.__init__(self)
+#        self.config = config
+#        self.input_path = input_path
+#        self.mongodb = mongodb
+#        self.limit = limit
 
-    def run(self):     
-        total = 0
-        number_files = 0
-        try:
-            isi_file = codecs.open(self.input_path, "rU", encoding="ascii",\
-                errors="replace" )
-        except Exception, exc:
-            logging.error( "Error reading file %s"%self.input_path )
-            return
-        output_file = codecs.open( join(self.config['output_path'], split(self.input_path)[1]),\
-            "w+", encoding="ascii", errors="replace")
-        
-        subtotal = importer.main(
-            isi_file,
-            config,
-            output_file,
-            mongodb,
-            limit=self.limit
-        )
-        total += subtotal
-        number_files += 1
-        logging.debug("extracted %d matching notices in %s (done %d files, %d total notices)"\
-            %(subtotal, isi_file, number_files, total))
+def worker(config, input_path, mongodb, limit=None):
+    try:
+        isi_file = codecs.open(input_path, "rU", encoding="ascii",\
+            errors="replace")
+    except Exception, exc:
+        logging.error("Error reading file %s"%input_path)
+        return
+
+    output_file = codecs.open( join(config['output_path'], split(input_path)[1]),\
+        "w+", encoding="ascii", errors="replace")
+
+    subtotal = importer.main(
+        isi_file,
+        config,
+        output_file,
+        mongodb,
+        limit=limit
+    )
+    logging.debug("extracted %d matching notices in %s"%(subtotal, isi_file))
 
 if __name__ == "__main__":
     config = yaml.load( open( "config.yaml", 'rU' ) )
-    glob_list = glob(config['data_path'])
-    
+    glob_list = glob(config['input_path'])
+
     mongodb = pymongo.Connection(config['mongo_host'],\
         config['mongo_port'])[config['mongo_db_name']]
-    
-    thread_list=[]
-    for input_path in glob_list:
-        asyncparser = AsyncParse(config, input_path, mongodb, None)
-        asyncparser.daemon=True
-        asyncparser.start()
-        thread_list += [asyncparser]
 
-    #[logging.debug(parser) for parser in thread_list]
+    for input_path in glob_list:
+        reactor.callInThread(worker, config, input_path, mongodb, limit=None)
+        #asyncparser = AsyncParse(config, input_path, mongodb, None)
+        #asyncparser.start()
+    reactor.run()
+    #[parser.join() for parser in thread_list]

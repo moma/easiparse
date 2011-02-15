@@ -25,7 +25,7 @@ class Record(object):
         self.last_tag = ""
         self._walkLines(lines)
         self.normalize()
-        self.filter()
+        self.clean()
 
     def _walkLines(self, lines):
         tag_length = self.config['isi']['tag_length']
@@ -44,7 +44,7 @@ class Record(object):
             if type(rule) == str:
                 self.__dict__[tag] = rule.join(self.__dict__[tag])
 
-    def filter(self):
+    def clean(self):
         """
         clean unwanted attributes
         """
@@ -88,6 +88,7 @@ class Record(object):
 class Notice(Record):
     def __init__(self, config, lines, recordtype, fieldsdefinition):
         Record.__init__(self, config, lines, recordtype, fieldsdefinition)
+        #self.filter()
 
     def _walkLines(self, lines):
         tag_length = self.config['isi']['tag_length']
@@ -140,23 +141,24 @@ class Notice(Record):
             i+=1
         return i
 
-    def filter(self):
-        """
-        search for an expression into the required fields of notice
-        """
-        #match_regexp = self.config['match_regexp']
-        required_fields = self.config['required_fields']
-        extraction_fields = self.config['extraction_fields']
+    def clean(self):
         self.__delattr__('total_lines')
         self.__delattr__('config')
         self.__delattr__('last_tag')
         self.__delattr__('recordtype')
         self.__delattr__('fields')
+
+    def filter(self):
+        """
+        search for an expression into the required fields of notice
+        """
+        match_regexp = self.config['match_regexp']
+        required_fields = self.config['required_fields']
+        extraction_fields = self.config['extraction_fields']
         for tag in required_fields:
             if tag not in self.__dict__:
                 raise NoticeRejected("notice incomplete")
                 return 0
-        return 1
 
         for tag in extraction_fields:
             if tag not in self.__dict__: continue
@@ -195,7 +197,7 @@ def main(file_isi, config, output_file, mongodb, limit=None):
     begin_tag = re.compile(config['isi']['items']['begin']+"\s.*$")
     end_tag = re.compile(config['isi']['items']['end']+"\s.*$")
 
-    #config['match_regexp'] = re.compile(config['match_regexp'])
+    config['match_regexp'] = re.compile(config['match_regexp'])
 
     file_lines = []
     issue_lines = []

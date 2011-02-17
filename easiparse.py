@@ -19,6 +19,7 @@ from glob import glob
 import pymongo
 import codecs
 from os.path import join, split
+
 from multiprocessing import pool
 
 import logging

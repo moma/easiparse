@@ -20,13 +20,16 @@ import exceptions
 
 def record_to_file(output_file, notice_lines):
     """
-    Copies notice lines to output file
+    Copies record to output file
     """
     if output_file is not None:
         for line in notice_lines:
             output_file.write(line)
 
 def record_to_mongodb(mongodb, record):
+    """
+    Copies record to mongodb
+    """
     if mongodb is not None:
         mongodb[record.recordtype].update({"_id":record.__dict__['_id']}, record.__dict__, upsert=True)
 

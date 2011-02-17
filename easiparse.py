@@ -20,41 +20,45 @@ import pymongo
 import codecs
 from os.path import join, split
 from multiprocessing import pool
+
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
-
-def worker(config, input_path, limit=None):
+def worker(config, input_path):
     try:
         isi_file = codecs.open(input_path, "rU", encoding="ascii",\
             errors="replace")
-        mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
-            config['output']['mongodb']['mongo_port'])\
-            [ config['output']['mongodb']['mongo_db_name'] ]
     except Exception, exc:
         logging.error("Error importing %s : %s"%(input_path,exc))
         return
 
-    if 'files' in config['output']:
-        output_file = codecs.open( join(config['output_path'], split(input_path)[1]),\
-            "w+", encoding="ascii", errors="replace")
-    else:
-        output_file = None
+    output_file = None
+    mongodb = None
+    if  config['output'] is not None:
+        if 'mongodb' in config['output']:
+            mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'])\
+                [ config['output']['mongodb']['mongo_db_name'] ]
+
+        if 'files' in config['output']:
+            output_file = codecs.open( join(config['output']['files']['path'], split(input_path)[1]),\
+                "w+", encoding="ascii", errors="replace")
 
     subtotal = importer.main(
         isi_file,
         config,
         output_file,
-        mongodb,
-        limit=limit
+        mongodb
     )
     logging.debug("extracted %d matching notices in %s"%(subtotal, isi_file))
 
 if __name__ == "__main__":
     config = yaml.load( open( "config.yaml", 'rU' ) )
     glob_list = glob(config['input_path'])
+
     pool = pool.Pool(processes=10)
     for input_path in glob_list:
         pool.apply_async(worker, (config, input_path))
+        
     pool.close()
     pool.join()

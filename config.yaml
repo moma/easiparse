@@ -1,4 +1,5 @@
 ---
+#limit: 10
 input_path: "input/MN3A97OV.isi"
 output:
     mongodb:
@@ -7,7 +8,7 @@ output:
         mongo_port: 27017
     #files:
         #output_path: "/data/tina/Thomson/easiparse_output/"
-        #output_path: "output/"
+        #path: "output/"
 filters:
     #match:
     #    regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
@@ -55,7 +56,7 @@ isi:
             IL: ""
             LD: ""
             IO: ""
-    items:
+    notices:
         key: "UT"
         begin: "UT"
         end: "EX"

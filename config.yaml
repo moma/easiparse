@@ -1,21 +1,21 @@
 ---
-input_path: "input/*.isi"
-#    - "/data/tina/Thomson/IC3N000252.isi"
-#    - "/data/tina/Thomson/IC3O020126.isi"
-#    - "/data/tina/Thomson/IF3N*.isi"
-#    - "/data/tina/Thomson/IG3N*.isi"
-#    - "/data/tina/Thomson/IG3O*.isi"
-#    - "/data/tina/Thomson/IN3A*.isi"
-#    - "/data/tina/Thomson/IN3O*.isi"
-#    - "/data/tina/Thomson/MN2A*.isi"
-#    - "/data/tina/Thomson/MN3A*.isi"
-mongo_db_name: "easiparse_test"
-mongo_host: "localhost"
-mongo_port: 27017
-#output_path: "/data/tina/Thomson/easiparse_output/"
-output_path: "output/"
-#match_regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
-match_regexp: .*
+input_path: "input/MN3A97OV.isi"
+output:
+    mongodb:
+        mongo_db_name: "easiparse_test"
+        mongo_host: "localhost"
+        mongo_port: 27017
+    #files:
+        #output_path: "/data/tina/Thomson/easiparse_output/"
+        #output_path: "output/"
+filters:
+    #match:
+    #    regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
+    #    fields:
+    #        - "TI"
+    #        - "AB"
+    #required_fields:
+    #    - "TI"
 isi:
     tag_length: 3
     multiline: "--"
@@ -100,8 +100,3 @@ isi:
                     'RS': ""
                     '/V': ""
                 end: "EC"
-extraction_fields:
-    - "TI" 
-    - "AB"
-required_fields:
-    - "TI"

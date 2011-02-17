@@ -18,32 +18,28 @@ import yaml
 from glob import glob
 import pymongo
 import codecs
-import threading
 from os.path import join, split
-from twisted.internet import reactor
-reactor.suggestThreadPoolSize(30)
-
+from multiprocessing import pool
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
-#class AsyncParse(threading.Thread):
-#    def __init__(self, config, input_path, mongodb, limit=None):
-#        threading.Thread.__init__(self)
-#        self.config = config
-#        self.input_path = input_path
-#        self.mongodb = mongodb
-#        self.limit = limit
 
-def worker(config, input_path, mongodb, limit=None):
+def worker(config, input_path, limit=None):
     try:
         isi_file = codecs.open(input_path, "rU", encoding="ascii",\
             errors="replace")
+        mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
+            config['output']['mongodb']['mongo_port'])\
+            [ config['output']['mongodb']['mongo_db_name'] ]
     except Exception, exc:
-        logging.error("Error reading file %s"%input_path)
+        logging.error("Error importing %s : %s"%(input_path,exc))
         return
 
-    output_file = codecs.open( join(config['output_path'], split(input_path)[1]),\
-        "w+", encoding="ascii", errors="replace")
+    if 'files' in config['output']:
+        output_file = codecs.open( join(config['output_path'], split(input_path)[1]),\
+            "w+", encoding="ascii", errors="replace")
+    else:
+        output_file = None
 
     subtotal = importer.main(
         isi_file,
@@ -57,13 +53,8 @@ def worker(config, input_path, mongodb, limit=None):
 if __name__ == "__main__":
     config = yaml.load( open( "config.yaml", 'rU' ) )
     glob_list = glob(config['input_path'])
-
-    mongodb = pymongo.Connection(config['mongo_host'],\
-        config['mongo_port'])[config['mongo_db_name']]
-
+    pool = pool.Pool(processes=10)
     for input_path in glob_list:
-        reactor.callInThread(worker, config, input_path, mongodb, limit=None)
-        #asyncparser = AsyncParse(config, input_path, mongodb, None)
-        #asyncparser.start()
-    reactor.run()
-    #[parser.join() for parser in thread_list]
+        pool.apply_async(worker, (config, input_path))
+    pool.close()
+    pool.join()

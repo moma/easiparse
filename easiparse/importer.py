@@ -2,17 +2,15 @@
 import re
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
-import os, sys
-import codecs
 import exceptions
 
 def notice_to_file(output_file, notice_lines):
     """
     Copies notice lines to output file
     """
-    for line in notice_lines:
-        output_file.write( line )
-    pass
+    if output_file is not None:
+        for line in notice_lines:
+            output_file.write( line )
 
 class NoticeRejected(exceptions.Exception):
     pass
@@ -88,7 +86,7 @@ class Record(object):
 class Notice(Record):
     def __init__(self, config, lines, recordtype, fieldsdefinition):
         Record.__init__(self, config, lines, recordtype, fieldsdefinition)
-        #self.filter()
+        self.filter()
 
     def _walkLines(self, lines):
         tag_length = self.config['isi']['tag_length']
@@ -150,16 +148,20 @@ class Notice(Record):
 
     def filter(self):
         """
-        search for an expression into the required fields of notice
+        apply configured filters
+        TODO : filter names call methods
+        summary : search for an expression into the required fields of notice
         """
-        match_regexp = self.config['match_regexp']
-        required_fields = self.config['required_fields']
-        extraction_fields = self.config['extraction_fields']
+        if 'required_fields' not in self.config['filters']: return 1
+        required_fields = self.config['filters']['required_fields']
         for tag in required_fields:
             if tag not in self.__dict__:
                 raise NoticeRejected("notice incomplete")
                 return 0
 
+        if 'match' not in  self.config['filters']: return 1
+        match_regexp = self.config['filters']['match']['regexp']
+        extraction_fields = self.config['filters']['match']['fields']
         for tag in extraction_fields:
             if tag not in self.__dict__: continue
             if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
@@ -197,7 +199,8 @@ def main(file_isi, config, output_file, mongodb, limit=None):
     begin_tag = re.compile(config['isi']['items']['begin']+"\s.*$")
     end_tag = re.compile(config['isi']['items']['end']+"\s.*$")
 
-    config['match_regexp'] = re.compile(config['match_regexp'])
+    if 'match' in config['filters']:
+        config['filters']['match']['regexp'] = re.compile(['filters']['match']['regexp'])
 
     file_lines = []
     issue_lines = []

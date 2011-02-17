@@ -18,10 +18,7 @@ import yaml
 from glob import glob
 import pymongo
 import codecs
-import threading
 from os.path import join, split
-from twisted.internet import reactor
-reactor.suggestThreadPoolSize(30)
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -62,8 +59,6 @@ if __name__ == "__main__":
         config['mongo_port'])[config['mongo_db_name']]
 
     for input_path in glob_list:
-        reactor.callInThread(worker, config, input_path, mongodb, limit=None)
-        #asyncparser = AsyncParse(config, input_path, mongodb, None)
-        #asyncparser.start()
-    reactor.run()
-    #[parser.join() for parser in thread_list]
+        worker(config, input_path, mongodb)
+        #reactor.callInThread(worker, config, input_path, mongodb, limit=None)
+    #reactor.run()

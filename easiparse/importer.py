@@ -10,8 +10,8 @@ def notice_to_file(output_file, notice_lines):
     """
     Copies notice lines to output file
     """
-    for line in notice_lines:
-        output_file.write( line )
+    #for line in notice_lines:
+    #    output_file.write( line )
     pass
 
 class NoticeRejected(exceptions.Exception):

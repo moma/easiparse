@@ -16,25 +16,8 @@
 import logging
 import re
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
-import exceptions
 
-def record_to_file(output_file, notice_lines):
-    """
-    Copies record to output file
-    """
-    if output_file is not None:
-        for line in notice_lines:
-            output_file.write(line)
-
-def record_to_mongodb(mongodb, record):
-    """
-    Copies record to mongodb
-    """
-    if mongodb is not None:
-        mongodb[record.recordtype].update({"_id":record.__dict__['_id']}, record.__dict__, upsert=True)
-
-class NoticeRejected(exceptions.Exception):
-    pass
+from easiparse.filters import NoticeRejected, getConfiguredFilters
 
 class Record(object):
     def __init__(self, config, lines, recordtype, fieldsdefinition):
@@ -107,9 +90,10 @@ class Issue(Record):
         self.clean()
         
 class Notice(Record):
-    def __init__(self, config, lines, recordtype, fieldsdefinition):
+    def __init__(self, config, lines, recordtype, fieldsdefinition, filters):
         Record.__init__(self, config, lines, recordtype, fieldsdefinition)
         # apply filters only if defined in config
+        self.filters = filters
         self.filter()
         self.clean()
 
@@ -175,35 +159,9 @@ class Notice(Record):
     def filter(self):
         """
         apply configured filters
-        TODO : filter names call methods
-        summary : search for an expression into the required fields of notice
         """
-        # no filter at all
-        if 'filters' not in self.config or self.config['filters'] is None: return 1
-
-        if 'required_fields' in self.config['filters']:
-            
-            required_fields = self.config['filters']['required_fields']
-            for tag in required_fields:
-                if tag not in self.__dict__:
-                    raise NoticeRejected("notice incomplete")
-                    return 0
-
-        if 'regexp_content' in self.config['filters']:
-            match_regexp = re.compile( self.config['filters']['regexp_content']['regexp'] )
-            extraction_fields = self.config['filters']['regexp_content']['fields']
-            for tag in extraction_fields:
-                if tag not in self.__dict__: continue
-                if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:
-                    if match_regexp.search(self.__dict__[tag]) is not None:
-                        return 1
-                elif type(self.__dict__[tag]) == list:
-                    for field in self.__dict__[tag]:
-                        if match_regexp.search(field) is not None:
-                            return 1
-        # anyway : reject
-        raise NoticeRejected("notice did not match")
-        return 0
+        for filter in self.filters:
+            filter.apply(self.__dict__)
 
 
 class SubRecord(Record):
@@ -212,7 +170,6 @@ class SubRecord(Record):
         self.clean()
         
     def _walkLines(self, sublines):
-        tag_length = self.config['isi']['tag_length']
         multiline = self.config['isi']['multiline']
         for line in sublines:
             tag = self.getTag(line)
@@ -221,10 +178,11 @@ class SubRecord(Record):
             self.dispatchValidLine(tag, line)
 
 
-def main(file_isi, config, output_file, mongodb):
+def main(file_isi, config, outputs):
     """
     Parses, filters, and save
     """
+    
     issue_begin = re.compile(config['isi']['issues']['begin'] + "\s.*$")
     issue_end = re.compile(config['isi']['issues']['end'] + "\s.*$")
     begin_tag = re.compile(config['isi']['notices']['begin'] + "\s.*$")
@@ -239,8 +197,11 @@ def main(file_isi, config, output_file, mongodb):
     issue_lines = []
     in_notice = 0
     in_issue = 0
+    close_issue = 0
     issue = None
     total_imported = 0
+
+    filters = getConfiguredFilters(config)
 
     # itere sur les lignes du corpus
     for line in file_isi:
@@ -252,9 +213,12 @@ def main(file_isi, config, output_file, mongodb):
             # first time will save an issue object
             if in_issue == 1:
                 in_issue = 0
+                close_issue = 1
                 issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
-                record_to_file(output_file, issue_lines)
-                record_to_mongodb(mongodb, issue)
+                if 'files' in outputs:
+                    outputs['files'].save(issue_lines)
+                if 'mongodb' in outputs:
+                    outputs['mongodb'].save(issue.__dict__, "issues")
 
             in_notice = 1
             file_lines = [line]
@@ -264,13 +228,14 @@ def main(file_isi, config, output_file, mongodb):
             in_notice = 0
             file_lines += [line]
             try:
-                notice = Notice(config, file_lines, 'notices', config['isi']['notices']['fields'])
-                total_imported += 1
-                record_to_file(output_file, file_lines)
+                notice = Notice(config, file_lines, 'notices', config['isi']['notices']['fields'], filters)
                 notice.__dict__['issue'] = issue.__dict__
-                record_to_mongodb(mongodb, notice)
-
-            except NoticeRejected, nr:
+                if 'files' in outputs:
+                    outputs['files'].save(file_lines)
+                if 'mongodb' in outputs:
+                    outputs['mongodb'].save(notice.__dict__, "notices")
+                total_imported += 1
+            except NoticeRejected:
                 pass
 
             if limit is not None and total_imported >= limit:
@@ -284,9 +249,10 @@ def main(file_isi, config, output_file, mongodb):
         if in_issue == 1:
             issue_lines += [line]
             continue
-        if issue_end.match(line) is not None:
+        if issue_end.match(line) is not None and close_issue==1:
             # closes the issue item
-            record_to_file(output_file, ["RE\n"])
+            outputs['files'].save(["RE\n"])
+            close_issue=0
             continue
 
     return total_imported

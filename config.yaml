@@ -1,103 +1,121 @@
 ---
-#limit: 10
-input_path: "input/MN3A97OV.isi"
-output:
-    mongodb:
-        mongo_db_name: "easiparse_test"
-        mongo_host: "localhost"
+processes: 10
+extractor:
+    input_db:
+        mongo_db_name: "wos"
+        mongo_host: "zebulon"
         mongo_port: 27017
-    #files:
-        #output_path: "/data/tina/Thomson/easiparse_output/"
-        #path: "output/"
-filters:
-    #regexp_content:
-    #    regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
-    #    fields:
-    #        - "TI"
-    #        - "AB"
-    #required_fields:
-    #    - "TI"
-isi:
-    tag_length: 3
-    multiline: "--"
-    issues:
-        key: "UI"
-        begin: "UI"
-        end: "RE"
-        fields:
-            UI: ""
-            T1: ""
-            PW: ""
-            GA: ""
-            SQ: ""
-            PT: ""
-            SO: ""
-            JI: ""
-            J1: ""
-            J2: ""
-            J9: ""
-            CF: ~
-            SC: ~
-            SN: ""
-            SC: ""
-            BN: ""
-            BS: ""
-            PU: ""
-            PI: ""
-            PA: ""
-            VL: ""
-            IS: ""
-            PY: ""
-            PD: ""
-            SU: ""
-            SI: ""
-            PN: ""
-            TV: ""
-            IL: ""
-            LD: ""
-            IO: ""
-    notices:
-        key: "UT"
-        begin: "UT"
-        end: "EX"
-        fields:
-            UT: ""
-            T9: ""  
-            T2: ""
-            AR: ~
-            AU: ~
-            RY: ""
-            TI: ""
-            DT: ""
-            DE: ~
-            LA: ""
-            AB: ""
-            AA: ""
-            RY: int
-        subfields:
-            C1:
-                fields:
-                    NU: ""
-                    NY: ""
-                    NF: ""
-                    NC : ""
-                end:  "EA"
-            CP:
-                fields:
-                    '/A': ""
-                    '/Y': ""
-                    '/W': ""
-                    '/N': ""
-                    '/C ': ""
-                end:  "EC"
-            CR:
-                fields:
-                    R9: ""
-                    AR: ~
-                    '/A': ""
-                    '/Y': ""
-                    '/W': ""
-                    '/I': ""
-                    'RS': ""
-                    '/V': ""
-                end: "EC"
+    output:
+        mongodb:
+            mongo_db_name: "mdts11"
+            mongo_host: "localhost"
+            mongo_port: 27017
+    filters:
+        regexp_content:
+            regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
+            fields:
+                - "TI"
+                - "AB"
+importer:
+    # debugging purposes
+    limit: 10
+    input_path: "input/*.isi"
+    output:
+#        mongodb:
+#            mongo_db_name: "mdts11"
+#            mongo_host: "localhost"
+#            mongo_port: 27017
+          files:
+            path: "output"
+    isi:
+        tag_length: 3
+        multiline: "--"
+        issues:
+            key: "UI"
+            begin: "UI"
+            end: "RE"
+            fields:
+                UI: ""
+                T1: ""
+                PW: ""
+                GA: ""
+                SQ: ""
+                PT: ""
+                SO: ""
+                JI: ""
+                J1: ""
+                J2: ""
+                J9: ""
+                CF: ~
+                SC: ~
+                SN: ""
+                SC: ""
+                BN: ""
+                BS: ""
+                PU: ""
+                PI: ""
+                PA: ""
+                VL: ""
+                IS: ""
+                PY: ""
+                PD: ""
+                SU: ""
+                SI: ""
+                PN: ""
+                TV: ""
+                IL: ""
+                LD: ""
+                IO: ""
+        notices:
+            key: "UT"
+            begin: "UT"
+            end: "EX"
+            fields:
+                UT: ""
+                T9: ""
+                T2: ""
+                AR: ~
+                AU: ~
+                RY: ""
+                TI: ""
+                DT: ""
+                DE: ~
+                LA: ""
+                AB: ""
+                AA: ""
+                RY: int
+            subfields:
+                C1:
+                    fields:
+                        NU: ""
+                        NY: ""
+                        NF: ""
+                        NC : ""
+                    end:  "EA"
+                CP:
+                    fields:
+                        '/A': ""
+                        '/Y': ""
+                        '/W': ""
+                        '/N': ""
+                        '/C ': ""
+                    end:  "EC"
+                CR:
+                    fields:
+                        R9: ""
+                        AR: ~
+                        '/A': ""
+                        '/Y': ""
+                        '/W': ""
+                        '/I': ""
+                        'RS': ""
+                        '/V': ""
+                    end: "EC"
+    filters:
+        regexp_content:
+            regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
+            fields:
+                - "TI"
+                - "AB"
+        required_fields:
+            - "TI"

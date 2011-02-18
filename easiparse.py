@@ -15,9 +15,9 @@
 from optparse import OptionParser
 import yaml
 from glob import glob
-from os.path import join, split
+import re
 
-from easiparse import importer, extractor
+from easiparse import importer, output
 
 import pymongo
 import codecs
@@ -26,7 +26,7 @@ from multiprocessing import pool
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
-def worker(config, input_path):
+def import_worker(config, input_path):
     try:
         isi_file = codecs.open(input_path, "rU", encoding="ascii",\
             errors="replace")
@@ -34,25 +34,30 @@ def worker(config, input_path):
         logging.error("Error importing %s : %s"%(input_path,exc))
         return
 
-    output_file = None
-    mongodb = None
-    if  config['output'] is not None:
-        if 'mongodb' in config['output']:
-            mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
-                config['output']['mongodb']['mongo_port'])\
-                [ config['output']['mongodb']['mongo_db_name'] ]
-
-        if 'files' in config['output']:
-            output_file = codecs.open( join(config['output']['files']['path'], split(input_path)[1]),\
-                "w+", encoding="ascii", errors="replace")
+    outputs = output.getConfiguredOutputs(config['importer'], input_path)
 
     subtotal = importer.main(
         isi_file,
-        config,
-        output_file,
-        mongodb
+        config['importer'],
+        outputs
     )
     logging.debug("extracted %d matching notices in %s"%(subtotal, isi_file))
+
+
+def extract_worker(config, fieldname):
+    """
+    not modular at all...
+    copies input db notices matching a regexg to an output db
+    """
+    input = pymongo.Connection(\
+        config['extractor']['input_db']['mongo_host'],\
+        config['extractor']['input_db']['mongo_port'])\
+        [ config['extractor']['input_db']['mongo_db_name'] ]
+    outputs = output.getConfiguredOutputs( config['extractor'] )
+    reg = re.compile( config['extractor']['filters']['regexp_content']['regexp'], re.I|re.U|re.M)
+    
+    for notice in input.notices.find({ fieldname:{"$regex":reg} }, timeout=False):
+        outputs['mongodb'].save(notice, "notices")
 
 def get_parser():
     parser = OptionParser()
@@ -63,15 +68,21 @@ if __name__ == "__main__":
     parser = get_parser()
     (options, args) = parser.parse_args()
     print options, args
-    
     config = yaml.load( open( "config.yaml", 'rU' ) )
 
     if options.execute=='import':
-        glob_list = glob(config['input_path'])
-        pool = pool.Pool(processes=10)
+        glob_list = glob(config['importer']['input_path'])
+        pool = pool.Pool(processes=config['processes'])
         for input_path in glob_list:
-            pool.apply_async(worker, (config, input_path))
+            pool.apply_async(import_worker, (config, input_path))
+            #import_worker(config, input_path)
         pool.close()
         pool.join()
-        
+
     if options.execute=='extract':
+        # not modular at all...
+        pool = pool.Pool(processes=config['processes'])
+        for fieldname in config['extractor']['filters']['regexp_content']['fields']:
+            pool.apply_async(extract_worker, (config, fieldname))
+        pool.close()
+        pool.join()

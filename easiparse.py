@@ -12,14 +12,15 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from easiparse import importer
+from optparse import OptionParser
 import yaml
 from glob import glob
-import pymongo
-import codecs
 from os.path import join, split
 
+from easiparse import importer, extractor
+
+import pymongo
+import codecs
 from multiprocessing import pool
 
 import logging
@@ -53,13 +54,24 @@ def worker(config, input_path):
     )
     logging.debug("extracted %d matching notices in %s"%(subtotal, isi_file))
 
-if __name__ == "__main__":
-    config = yaml.load( open( "config.yaml", 'rU' ) )
-    glob_list = glob(config['input_path'])
+def get_parser():
+    parser = OptionParser()
+    parser.add_option("-e", "--execute", dest="execute", help="execution action")
+    return parser
 
-    pool = pool.Pool(processes=10)
-    for input_path in glob_list:
-        pool.apply_async(worker, (config, input_path))
+if __name__ == "__main__":
+    parser = get_parser()
+    (options, args) = parser.parse_args()
+    print options, args
+    
+    config = yaml.load( open( "config.yaml", 'rU' ) )
+
+    if options.execute=='import':
+        glob_list = glob(config['input_path'])
+        pool = pool.Pool(processes=10)
+        for input_path in glob_list:
+            pool.apply_async(worker, (config, input_path))
+        pool.close()
+        pool.join()
         
-    pool.close()
-    pool.join()
+    if options.execute=='extract':

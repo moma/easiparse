@@ -10,7 +10,7 @@ output:
         #output_path: "/data/tina/Thomson/easiparse_output/"
         #path: "output/"
 filters:
-    #match:
+    #regexp_content:
     #    regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
     #    fields:
     #        - "TI"

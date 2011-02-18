@@ -189,9 +189,9 @@ class Notice(Record):
                     raise NoticeRejected("notice incomplete")
                     return 0
 
-        if 'match' in self.config['filters']:
-            match_regexp = re.compile( self.config['filters']['match']['regexp'] )
-            extraction_fields = self.config['filters']['match']['fields']
+        if 'regexp_content' in self.config['filters']:
+            match_regexp = re.compile( self.config['filters']['regexp_content']['regexp'] )
+            extraction_fields = self.config['filters']['regexp_content']['fields']
             for tag in extraction_fields:
                 if tag not in self.__dict__: continue
                 if type(self.__dict__[tag]) == str or type(self.__dict__[tag]) == unicode:

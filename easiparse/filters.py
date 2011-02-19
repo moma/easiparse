@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -22,7 +23,7 @@ logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 def getConfiguredFilters(config):
 
     filters = []
-    for name in config['filters'].iteritems():
+    for name in config['filters'].iterkeys():
         try:
             if name == "required_fields":
                 filters.append(RequiredFields(config))

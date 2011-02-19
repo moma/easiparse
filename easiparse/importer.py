@@ -239,6 +239,7 @@ def main(file_isi, config, outputs):
                 pass
 
             if limit is not None and total_imported >= limit:
+                outputs['files'].save(["RE\n"])
                 return total_imported
 
         if issue_begin.match(line) is not None:

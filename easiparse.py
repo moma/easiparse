@@ -22,7 +22,7 @@ from easiparse import importer, output
 import pymongo
 import codecs
 from multiprocessing import pool
-
+import itertools
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
@@ -59,6 +59,19 @@ def extract_worker(config, fieldname):
     for notice in input.notices.find({ fieldname:{"$regex":reg} }, timeout=False):
         outputs['mongodb'].save(notice, "notices")
 
+def cooccurrences_worker(config, year ):
+    """
+    not modular at all...
+    """
+    input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
+    outputs = output.getConfiguredOutputs(config)
+    coocdict = {}
+    for doublet in itertools.combinations(open(config["whitelist"]["path"],'rU').readlines(),2):
+        coocdict["::".join(doublet)] = input.notices.find({ "issue.PY": year,\
+			"TI":{"$regex": re.compile("\b%s\b"%doublet[0], re.I|re.U|re.M)},\
+			"TI":{"$regex": re.compile("\b%s\b"%doublet[1], re.I|re.U|re.M)} }).count()
+    outputs['mongodb'].save(coocdict, year)
+
 def get_parser():
     parser = OptionParser()
     parser.add_option("-e", "--execute", dest="execute", help="execution action")
@@ -86,3 +99,17 @@ if __name__ == "__main__":
             pool.apply_async(extract_worker, (config, fieldname))
         pool.close()
         pool.join()
+
+
+    if options.execute=='cooccurrences':
+        print config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name']
+        input = pymongo.Connection(config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name'])[config['cooccurrences']['input_db']['mongo_db_name']]
+		
+        allyears=  input.issues.distinct("PY")
+        print allyears
+#        pool = pool.Pool(processes=config['processes'])
+        for year in allyears:
+            cooccurrences_worker(config['cooccurrences'], year)
+#            pool.apply_async(cooccurrences_worker, (config['cooccurrences'], year))
+ #       pool.close()
+  #      pool.join()

@@ -196,6 +196,7 @@ def main(file_isi, config, outputs):
     issue_lines = []
     in_notice = 0
     in_issue = 0
+    save_issue = 1
     close_issue = 0
     issue = None
     total_imported = 0
@@ -205,35 +206,48 @@ def main(file_isi, config, outputs):
     # itere sur les lignes du corpus
     for line in file_isi:
         if in_notice == 1 and end_tag.match(line) is None:
+            # records notices' lines
             file_lines += [line]
             continue
 
         if begin_tag.match(line) is not None and in_notice == 0:
+            # opens the in_notice flag and starts recording lines
             in_notice = 1
             file_lines = [line]
             continue
 
         if end_tag.match(line) is not None and in_notice == 1:
+            # closes in_notice flag
             in_notice = 0
             file_lines += [line]
             try:
-                issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
-                notice = Notice(config, file_lines, 'notices', config['isi']['notices']['fields'], filters)
+                # closes issue capturing
+                in_issue = 0
+                # creates objects
+                issue = Record(config, issue_lines, 'issues',\
+                    config['isi']['issues']['fields'])
+                notice = Notice(config, file_lines, 'notices',\
+                    config['isi']['notices']['fields'], filters)
                 notice.__dict__['issue'] = issue.__dict__
-                # writes the notice
-                if 'files' in outputs:
-                    outputs['files'].save(file_lines)
-                if 'mongodb' in outputs:
-                    outputs['mongodb'].save(notice.__dict__, "notices")
-                total_imported += 1
-                # will save an issue object only if it's the first article
-                if in_issue == 1:
-                    in_issue = 0
+                
+                # saves the issue only if it's the first accepted article
+                if  save_issue == 1:
+                    # closes save_issue flag
+                    save_issue = 0
+                    # opens close_issue flag
                     close_issue = 1
                     if 'files' in outputs:
                         outputs['files'].save(issue_lines)
                     if 'mongodb' in outputs:
                         outputs['mongodb'].save(issue.__dict__, "issues")
+                        
+                # saves the notice
+                if 'files' in outputs:
+                    outputs['files'].save(file_lines)
+                if 'mongodb' in outputs:
+                    outputs['mongodb'].save(notice.__dict__, "notices")
+                total_imported += 1
+
             except NoticeRejected:
                 pass
 
@@ -242,18 +256,22 @@ def main(file_isi, config, outputs):
                 return total_imported
 
         if issue_begin.match(line) is not None:
+            # opens both in-issue and save_issue flags
             in_issue = 1
+            save_issue = 1
+            # starts recording the issue's lines
             issue_lines = [line]
             continue
 
         if in_issue == 1:
+            # records issue's lines
             issue_lines += [line]
             continue
             
         if issue_end.match(line) is not None and close_issue==1:
-            # closes the issue item
+            # closes the issue item and the close_issue flag
             outputs['files'].save(["RE\n"])
-            close_issue=0
+            close_issue = 0
             continue
 
     return total_imported

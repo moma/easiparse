@@ -206,7 +206,7 @@ def main(file_isi, config, outputs):
     # itere sur les lignes du corpus
     for line in file_isi:
         if in_notice == 1 and end_tag.match(line) is None:
-            # records notices' lines
+            # records the notices' lines
             file_lines += [line]
             continue
 

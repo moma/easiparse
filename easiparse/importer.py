@@ -182,7 +182,6 @@ def main(file_isi, config, outputs):
     """
     Parses, filters, and save
     """
-    
     issue_begin = re.compile(config['isi']['issues']['begin'] + "\s.*$")
     issue_end = re.compile(config['isi']['issues']['end'] + "\s.*$")
     begin_tag = re.compile(config['isi']['notices']['begin'] + "\s.*$")
@@ -210,16 +209,6 @@ def main(file_isi, config, outputs):
             continue
 
         if begin_tag.match(line) is not None and in_notice == 0:
-            # first time will save an issue object
-            if in_issue == 1:
-                in_issue = 0
-                close_issue = 1
-                issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
-                if 'files' in outputs:
-                    outputs['files'].save(issue_lines)
-                if 'mongodb' in outputs:
-                    outputs['mongodb'].save(issue.__dict__, "issues")
-
             in_notice = 1
             file_lines = [line]
             continue
@@ -228,13 +217,23 @@ def main(file_isi, config, outputs):
             in_notice = 0
             file_lines += [line]
             try:
+                issue = Record(config, issue_lines, 'issues', config['isi']['issues']['fields'])
                 notice = Notice(config, file_lines, 'notices', config['isi']['notices']['fields'], filters)
                 notice.__dict__['issue'] = issue.__dict__
+                # writes the notice
                 if 'files' in outputs:
                     outputs['files'].save(file_lines)
                 if 'mongodb' in outputs:
                     outputs['mongodb'].save(notice.__dict__, "notices")
                 total_imported += 1
+                # will save an issue object only if it's the first article
+                if in_issue == 1:
+                    in_issue = 0
+                    close_issue = 1
+                    if 'files' in outputs:
+                        outputs['files'].save(issue_lines)
+                    if 'mongodb' in outputs:
+                        outputs['mongodb'].save(issue.__dict__, "issues")
             except NoticeRejected:
                 pass
 
@@ -250,6 +249,7 @@ def main(file_isi, config, outputs):
         if in_issue == 1:
             issue_lines += [line]
             continue
+            
         if issue_end.match(line) is not None and close_issue==1:
             # closes the issue item
             outputs['files'].save(["RE\n"])

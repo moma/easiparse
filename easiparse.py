@@ -67,8 +67,8 @@ if __name__ == "__main__":
         glob_list = glob(config['importer']['input_path'])
         pool = pool.Pool(processes=config['processes'])
         for input_path in glob_list:
-            #pool.apply_async(import_worker, (config, input_path))
-            import_worker(config, input_path)
+            pool.apply_async(import_worker, (config, input_path))
+            #import_worker(config, input_path)
         pool.close()
         pool.join()
 

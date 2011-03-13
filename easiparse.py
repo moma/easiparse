@@ -59,18 +59,59 @@ def extract_worker(config, fieldname):
     for notice in input.notices.find({ fieldname:{"$regex":reg} }, timeout=False):
         outputs['mongodb'].save(notice, "notices")
 
-def cooccurrences_worker(config, year ):
-    """
-    not modular at all...
-    """
-    input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
-    outputs = output.getConfiguredOutputs(config)
-    coocdict = {}
-    for doublet in itertools.combinations(open(config["whitelist"]["path"],'rU').readlines(),2):
-        coocdict["::".join(doublet)] = input.notices.find({ "issue.PY": year,\
-			"TI":{"$regex": re.compile("\b%s\b"%doublet[0], re.I|re.U|re.M)},\
-			"TI":{"$regex": re.compile("\b%s\b"%doublet[1], re.I|re.U|re.M)} }).count()
-    outputs['mongodb'].save(coocdict, year)
+
+def limitminusone(string):
+	return string[:-1]
+
+
+def count_year(notices):
+	occ_y = {}
+	for notice in notices:
+		occ_y.setdefault(notice["issue"]["PY"],[]).append(notice["_id"])
+	return occ_y
+
+def remove_endline(string):
+	return string.replace('\n','').replace('\r','')
+	
+def cooccurrences_worker(config ):
+	"""
+	not modular at all...
+	"""
+    #input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
+	#outputs = output.getConfiguredOutputs(config)
+	#     for doublet in itertools.combinations(open(config["whitelist"]["path"],'rU').readlines(),2):
+	#         coocdict["::".join(doublet)] = input.notices.find({ "issue.PY": year,\
+	# "TI":{"$regex": re.compile("\b%s\b"%doublet[0], re.I|re.U|re.M)},\
+	# "TI":{"$regex": re.compile("\b%s\b"%doublet[1], re.I|re.U|re.M)} }).count()
+	occ={}
+	nb_occ={}
+	cooc={}
+	terms_list=open(config["whitelist"]["path"],'rU').readlines()
+	terms_list=list(map(remove_endline, terms_list))
+	#print terms_list
+    
+	
+	for term in terms_list:
+		nb_occ[term]={}
+		regex=re.compile(term,re.I | re.M | re.U)#\b%s\b"%term does not work...???!!!
+		notices=input.notices.find({"AB":{"$regex":regex}}, timeout=False).limit(20)
+		occ[term]=count_year(notices)
+		for year,notices_id in occ[term].iteritems():
+			nb_occ[term][year] = len(notices_id)
+	#print nb_occ
+	N=len(terms_list)*(len(terms_list)-1)/2
+	for i,doublet in enumerate(itertools.combinations(terms_list,2)):
+		if not (i+1)%100 or i+1==N:
+			print str(i+1), '(over '+str(N)  + 'pairs of terms)'
+		cooc[doublet]={}
+		for year,occ_y in occ[doublet[0]].iteritems():
+			if year in occ[doublet[1]]:
+
+				s,t = occ_y,occ[doublet[1]][year]
+				cooc[doublet][year] = len(set(s)&set(t))
+	
+	return cooc
+	#outputs['mongodb'].save(coocdict,'coocdict')
 
 def get_parser():
     parser = OptionParser()
@@ -102,14 +143,20 @@ if __name__ == "__main__":
 
 
     if options.execute=='cooccurrences':
-        print config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name']
-        input = pymongo.Connection(config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name'])[config['cooccurrences']['input_db']['mongo_db_name']]
-		
-        allyears=  input.issues.distinct("PY")
-        print allyears
-#        pool = pool.Pool(processes=config['processes'])
-        for year in allyears:
-            cooccurrences_worker(config['cooccurrences'], year)
-#            pool.apply_async(cooccurrences_worker, (config['cooccurrences'], year))
- #       pool.close()
-  #      pool.join()
+        input = pymongo.Connection(\
+	        config['cooccurrences']['input_db']['mongo_host'],\
+	        config['cooccurrences']['input_db']['mongo_port'])\
+	        [ config['cooccurrences']['input_db']['mongo_db_name'] ]
+        
+
+        cooc = cooccurrences_worker(config['cooccurrences'])
+        print cooc
+        #print input.collection_names()
+        #allyears= input.issues.distinct("PY")
+        #print allyears
+        #pool = pool.Pool(processes=config['processes'])
+        #for year in allyears[-2:]:
+            #cooccurrences_worker(config['cooccurrences'], year)
+            #pool.apply_async(cooccurrences_worker, (config['cooccurrences'], year))
+        #pool.close()
+        #pool.join()

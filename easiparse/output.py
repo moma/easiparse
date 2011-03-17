@@ -15,8 +15,9 @@
 __author__="elishowk@nonutc.fr"
 
 from os.path import split, join
-import pymongo
+
 import codecs
+from mongodbhandler import MongoDB
 
 def getConfiguredOutputs(config, currentfilename=None):
     """
@@ -54,9 +55,17 @@ class File(Output):
 class Mongo(Output):
     def __init__(self, config):
         Output.__init__(self, config)
-        self.mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
-            config['output']['mongodb']['mongo_port'])\
-            [ config['output']['mongodb']['mongo_db_name'] ]
+        if 'mongo_login' in config['output']['mongodb']:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'],\
+                config['output']['mongodb']['mongo_login'])
+        else:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\

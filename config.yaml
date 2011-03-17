@@ -5,6 +5,7 @@ extractor:
         mongo_db_name: "wos"
         mongo_host: "zebulon"
         mongo_port: 27017
+        mongo_login: "password.yaml"
     output:
         mongodb:
             mongo_db_name: "mdts11"
@@ -20,13 +21,15 @@ extractor:
 cooccurrences:
     input_db:
         mongo_db_name: "mdts11"
-        mongo_host: "mongodb://mdts11_challenge:D1g1talTraces@zebulon"
+        mongo_host: "zebulon"
         mongo_port: 27017
+        mongo_login: "password.yaml"
     output:
         mongodb:
-            mongo_db_name: "cooc-embryo"
+            mongo_db_name: "cooc-mdts11"
             mongo_host: "zebulon"
             mongo_port: 27017
+            mongo_login: "password.yaml"
     whitelist:
         path: "whitelist.txt"
         

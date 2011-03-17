@@ -60,24 +60,6 @@ def extract_worker(config, fieldname):
     for notice in input.notices.find({ fieldname:{"$regex":reg} }, timeout=False):
         outputs['mongodb'].save(notice, "notices")
 
-<<<<<<< HEAD
-def cooccurrences_worker(config, year ):
-    """
-    not modular at all...
-    """
-    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
-            config['cooccurrences']['input_db']['mongo_port'],\
-            config['cooccurrences']['input_db']['mongo_db_name'],\
-            config['cooccurrences']['input_db']['mongo_login'])
-#   input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
-    outputs = output.getConfiguredOutputs(config['cooccurrences'])
-    coocdict = {}
-    for doublet in itertools.combinations(open(config["whitelist"]["path"],'rU').readlines(),2):
-        coocdict["::".join(doublet)] = input.notices.find({ "issue.PY": year,\
-			"TI":{"$regex": re.compile("\b%s\b"%doublet[0], re.I|re.U|re.M)},\
-			"TI":{"$regex": re.compile("\b%s\b"%doublet[1], re.I|re.U|re.M)} }).count()
-    outputs['mongodb'].save(coocdict, year)
-
 def get_parser():
     parser = OptionParser()
     parser.add_option("-e", "--execute", dest="execute", help="execution action")
@@ -113,8 +95,7 @@ if __name__ == "__main__":
             config['cooccurrences']['input_db']['mongo_db_name'],\
             config['cooccurrences']['input_db']['mongo_login'])
         
-        cooc = cooccurrences.worker(config['cooccurrences'])
-        logging.debug( cooc )
+        cooccurrences.worker(config['cooccurrences'])
         #print input.collection_names()
         #allyears= input.issues.distinct("PY")
         #print allyears

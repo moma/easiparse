@@ -17,12 +17,13 @@ import yaml
 from glob import glob
 import re
 
-from easiparse import importer, output
+from easiparse import importer, output, mongodbhandler
 
 import pymongo
 import codecs
 from multiprocessing import pool
 import itertools
+
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
@@ -63,8 +64,12 @@ def cooccurrences_worker(config, year ):
     """
     not modular at all...
     """
-    input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
-    outputs = output.getConfiguredOutputs(config)
+    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
+            config['cooccurrences']['input_db']['mongo_port'],\
+            config['cooccurrences']['input_db']['mongo_db_name'],\
+            config['cooccurrences']['input_db']['mongo_login'])
+#   input = pymongo.Connection(config['input_db']['mongo_host']+"/"+config['input_db']['mongo_db_name'])[config['input_db']['mongo_db_name']]
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
     coocdict = {}
     for doublet in itertools.combinations(open(config["whitelist"]["path"],'rU').readlines(),2):
         coocdict["::".join(doublet)] = input.notices.find({ "issue.PY": year,\
@@ -102,11 +107,13 @@ if __name__ == "__main__":
 
 
     if options.execute=='cooccurrences':
-        print config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name']
-        input = pymongo.Connection(config['cooccurrences']['input_db']['mongo_host'] + '/'+config['cooccurrences']['input_db']['mongo_db_name'])[config['cooccurrences']['input_db']['mongo_db_name']]
-		
+        input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
+            config['cooccurrences']['input_db']['mongo_port'],\
+            config['cooccurrences']['input_db']['mongo_db_name'],\
+            config['cooccurrences']['input_db']['mongo_login'])
+            
         allyears=  input.issues.distinct("PY")
-        print allyears
+
 #        pool = pool.Pool(processes=config['processes'])
         for year in allyears:
             cooccurrences_worker(config['cooccurrences'], year)

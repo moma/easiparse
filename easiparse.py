@@ -60,6 +60,7 @@ def extract_worker(config, fieldname):
     for notice in input.notices.find({ fieldname:{"$regex":reg} }, timeout=False):
         outputs['mongodb'].save(notice, "notices")
 
+<<<<<<< HEAD
 def cooccurrences_worker(config, year ):
     """
     not modular at all...
@@ -111,12 +112,15 @@ if __name__ == "__main__":
             config['cooccurrences']['input_db']['mongo_port'],\
             config['cooccurrences']['input_db']['mongo_db_name'],\
             config['cooccurrences']['input_db']['mongo_login'])
-            
-        allyears=  input.issues.distinct("PY")
-
-#        pool = pool.Pool(processes=config['processes'])
-        for year in allyears:
-            cooccurrences_worker(config['cooccurrences'], year)
-#            pool.apply_async(cooccurrences_worker, (config['cooccurrences'], year))
- #       pool.close()
-  #      pool.join()
+        
+        cooc = cooccurrences.worker(config['cooccurrences'])
+        logging.debug( cooc )
+        #print input.collection_names()
+        #allyears= input.issues.distinct("PY")
+        #print allyears
+        #pool = pool.Pool(processes=config['processes'])
+        #for year in allyears[-2:]:
+            #cooccurrences_worker(config['cooccurrences'], year)
+            #pool.apply_async(cooccurrences_worker, (config['cooccurrences'], year))
+        #pool.close()
+        #pool.join()

@@ -27,7 +27,7 @@ cooccurrences:
     output:
         mongodb:
             mongo_db_name: "cooc-mdts11"
-            mongo_host: "zebulon"
+            mongo_host: "locahost"
             mongo_port: 27017
             mongo_login: "password.yaml"
     whitelist:

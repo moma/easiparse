@@ -19,6 +19,9 @@ from os.path import split, join
 import codecs
 from mongodbhandler import MongoDB
 
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
+
 def getConfiguredOutputs(config, currentfilename=None):
     """
     Parses config to fill it with output objects
@@ -28,7 +31,7 @@ def getConfiguredOutputs(config, currentfilename=None):
         return outputs
 
     if 'mongodb' in config['output']:
-        outputs['mongodb'] = Mongo(config)
+        outputs['mongodb'] = MongoOutput(config)
     if 'files' in config['output']:
         outputs['files'] = File(config, currentfilename)
 
@@ -52,7 +55,7 @@ class File(Output):
         for line in record_lines:
             self.fileobj.write( line )
 
-class Mongo(Output):
+class MongoOutput(Output):
     def __init__(self, config):
         Output.__init__(self, config)
         if 'mongo_login' in config['output']['mongodb']:

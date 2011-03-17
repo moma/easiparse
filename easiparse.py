@@ -17,12 +17,12 @@ import yaml
 from glob import glob
 import re
 
-from easiparse import importer, output, mongodbhandler
+from easiparse import importer, output, mongodbhandler, cooccurrences
 
 import pymongo
 import codecs
 from multiprocessing import pool
-import itertools
+
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -95,7 +95,7 @@ if __name__ == "__main__":
             config['cooccurrences']['input_db']['mongo_db_name'],\
             config['cooccurrences']['input_db']['mongo_login'])
         
-        cooccurrences.worker(config['cooccurrences'])
+        cooccurrences.worker(config)
         #print input.collection_names()
         #allyears= input.issues.distinct("PY")
         #print allyears

@@ -1,5 +1,5 @@
 ---
-processes: 10
+processes: 2
 extractor:
     input_db:
         mongo_db_name: "wos"

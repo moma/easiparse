@@ -61,15 +61,17 @@ def cooccurrences_worker(config, doublet):
     doublet_id = term_one_id + "_" + term_two_id
     coocline = {"_id": doublet_id}
 
-    term_occurrences = {
-        doublet[0]: outputs['mongodb'].mongodb.whitelist.find({"_id": term_one_id}, {"occurrences": 1}),
-        doublet[1]: outputs['mongodb'].mongodb.whitelist.find({"_id": term_two_id}, {"occurrences": 1})
+    term_one_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": term_one_id}, {"notices": 1})
+    term_two_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": term_two_id}, {"notices": 1})
+
+    term_notices = {
+        doublet[0]: term_one_record["notices"],
+        doublet[1]: term_two_record["notices"]
     }
-    print term_occurrences
-    for year, occ_y in term_occurrences[doublet[0]].iteritems():
-        if year in term_occurrences[doublet[1]]:
-            s,t = occ_y, term_occurrences[doublet[1]][year]
-            coocline["%d"%year] = len(set(s) & set(t))
+
+    for year, notices_list_one in term_notices[doublet[0]].iteritems():
+        if year in term_notices[doublet[1]]:
+            coocline[year] = len(set(notices_list_one) & set(term_notices[doublet[1]][year]))
 #    print coocline
     outputs['mongodb'].save(coocline,'coocmatrix')
 
@@ -80,12 +82,12 @@ def main_occurrences(config):
     terms_list = open(config['cooccurrences']["whitelist"]["path"],'rU').readlines()
     terms_list = list(map(normalize, terms_list))
 
-#    occspool = pool.Pool(processes=config['processes'])
+    occspool = pool.Pool(processes=config['processes'])
     for term in terms_list:
-#        occspool.apply_async(occurrences_worker, (config, term))
-        occurrences_worker(config, term)
-#    occspool.close()
-#    occspool.join()
+        occspool.apply_async(occurrences_worker, (config, term))
+#        occurrences_worker(config, term)
+    occspool.close()
+    occspool.join()
 
 def main_cooccurrences(config):
     """
@@ -94,12 +96,12 @@ def main_cooccurrences(config):
     terms_list = open(config['cooccurrences']["whitelist"]["path"],'rU').readlines()
     terms_list = list(map(normalize, terms_list))
     N = len(terms_list)*(len(terms_list)-1) / 2
-    
-#    coocspool = pool.Pool(processes=config['processes'])
+
+    coocspool = pool.Pool(processes=config['processes'])
     for i, doublet in enumerate(itertools.combinations(terms_list,2)):
         if not (i+1)%100 or i+1==N:
             logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
-        cooccurrences_worker(config, doublet)
-#        coocspool.apply_async(cooccurrences_worker, (config, doublet))
-#    coocspool.close()
-#    coocspool.join()
+#        cooccurrences_worker(config, doublet)
+        coocspool.apply_async(cooccurrences_worker, (config, doublet))
+    coocspool.close()
+    coocspool.join()

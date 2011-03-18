@@ -18,13 +18,14 @@ from os.path import split, join
 
 import codecs
 from mongodbhandler import MongoDB
+from tinasoft.data import Writer
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
 def getConfiguredOutputs(config, currentfilename=None):
     """
-    Parses config to fill it with output objects
+    Parses the config to fill it with output objects
     """
     outputs = {}
     if  config['output'] is None:
@@ -34,10 +35,14 @@ def getConfiguredOutputs(config, currentfilename=None):
         outputs['mongodb'] = MongoOutput(config)
     if 'files' in config['output']:
         outputs['files'] = File(config, currentfilename)
-
+    if 'whitelist' in config['output']:
+        outputs['whitelist'] = WhitelistOutput(config)
     return outputs
 
 class Output(object):
+    """
+    abstract class
+    """
     def __init__(self, config, *args, **kwargs):
         self.config = config
 
@@ -45,6 +50,9 @@ class Output(object):
         pass
 
 class File(Output):
+    """
+    file output
+    """
     def __init__(self, config, currentfilename):
         Output.__init__(self, config)
         self.fileobj = codecs.open(\
@@ -56,6 +64,9 @@ class File(Output):
             self.fileobj.write( line )
 
 class MongoOutput(Output):
+    """
+    mongo db output
+    """
     def __init__(self, config):
         Output.__init__(self, config)
         if 'mongo_login' in config['output']['mongodb']:
@@ -75,3 +86,14 @@ class MongoOutput(Output):
             {"_id":record['_id']},\
             record,\
             upsert=True)
+
+class WhitelistOutput(Output):
+    """
+    tinasoft whitelist db output
+    """
+    def __init__(self, config):
+        Output.__init__(self, config)
+
+    def save(self, whitelistobj):
+        wlexporter = Writer("whitelist://"+self.config['output']['whitelist']['path'])
+        wlexporter.write_whitelist(whitelistobj, None, status="w")

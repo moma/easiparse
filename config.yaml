@@ -29,8 +29,10 @@ cooccurrences:
             mongo_host: "localhost"
             mongo_port: 27017
             #mongo_login: "password.yaml"
+        whitelist:
+            path: "output_whitelist.csv"
     whitelist:
-        path: "whitelist.txt"
+        path: "FETkeywords-keyphrases.csv"
 importer:
     # debugging purposes
     limit: 10

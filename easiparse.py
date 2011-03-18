@@ -86,4 +86,4 @@ if __name__ == "__main__":
             config['cooccurrences']['input_db']['mongo_db_name'],\
             config['cooccurrences']['input_db']['mongo_login'])
         
-        cooccurrences.worker(config)
+        cooccurrences.main(config)

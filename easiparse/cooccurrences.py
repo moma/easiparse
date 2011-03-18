@@ -31,7 +31,26 @@ def count_year(notices):
 def remove_endline(string):
     return string.replace('\n','').replace('\r','')
 
-def worker(config):
+def occurrences_worker(config, term):
+    termid = sha256(term).hexdigest()
+    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
+        config['cooccurrences']['input_db']['mongo_port'],\
+        config['cooccurrences']['input_db']['mongo_db_name'],\
+        config['cooccurrences']['input_db']['mongo_login'])
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+
+    regex = re.compile( r"\b%s\b"%term, re.I | re.M | re.U )
+    notices = input.notices.find({"AB":{"$regex":regex}}, timeout=False)
+
+    term_occ = {}
+    term_occ["_id"] = termid
+    term_occ["label"] = term
+
+    term_occ["occurrences"] = count_year(notices)
+    for year, notices_id in occ[term].iteritems():
+        nb_occ[term][year] = len(notices_id)
+
+def main(config):
     """
     main cooccurrences processor
     """
@@ -39,26 +58,33 @@ def worker(config):
         config['cooccurrences']['input_db']['mongo_port'],\
         config['cooccurrences']['input_db']['mongo_db_name'],\
         config['cooccurrences']['input_db']['mongo_login'])
-
-    occ = {}
-    nb_occ = {}
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+    #occ = {}
+    #nb_occ = {}
 
     terms_list = open(config['cooccurrences']["whitelist"]["path"],'rU').readlines()
     terms_list = list(map(remove_endline, terms_list))
-    #print terms_list
 
-    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+    occspool = pool.Pool(processes=config['processes'])
+
+    
     for term in terms_list:
+
         nb_occ[term] = {}
-        regex = re.compile( "\s%s\s"%term, re.I | re.M | re.U) #\b%s\b"%term does not work...???!!!
+        regex = re.compile( r"\b%s\b"%term, re.I | re.M | re.U )
         notices = input.notices.find({"AB":{"$regex":regex}}, timeout=False)
         occ[term] = count_year(notices)
         for year, notices_id in occ[term].iteritems():
             nb_occ[term][year] = len(notices_id)
-    logging.debug( nb_occ )
+
+        occspool.apply_async(occurrences_worker, (config, term))
+    occspool.close()
+    occspool.join()
 
     N = len(terms_list)*(len(terms_list)-1) / 2
+
     for i, doublet in enumerate(itertools.combinations(terms_list,2)):
+        
         doublet_id = sha256(doublet[0]).hexdigest() + "_" + sha256(doublet[1]).hexdigest()
         if not (i+1)%100 or i+1==N:
             logging.debug( "%d (over %d paris of terms)"%( i+1, N ) )

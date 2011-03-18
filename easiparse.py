@@ -19,7 +19,6 @@ import re
 
 from easiparse import importer, output, mongodbhandler, cooccurrences
 
-import pymongo
 import codecs
 from multiprocessing import pool
 
@@ -42,10 +41,10 @@ def extract_worker(config, fieldname):
     not modular at all...
     copies input db notices matching a regexg to an output db
     """
-    input = pymongo.Connection(\
-        config['extractor']['input_db']['mongo_host'],\
-        config['extractor']['input_db']['mongo_port'])\
-        [ config['extractor']['input_db']['mongo_db_name'] ]
+    input = mongodbhandler.MongoDB(config['extractor']['input_db']['mongo_host'],\
+            config['extractor']['input_db']['mongo_port'],\
+            config['extractor']['input_db']['mongo_db_name'],\
+            config['extractor']['input_db']['mongo_login'])
     outputs = output.getConfiguredOutputs( config['extractor'] )
     reg = re.compile( config['extractor']['filters']['regexp_content']['regexp'], re.I|re.U|re.M)
     
@@ -67,13 +66,12 @@ if __name__ == "__main__":
         glob_list = glob(config['importer']['input_path'])
         pool = pool.Pool(processes=config['processes'])
         for input_path in glob_list:
-            #pool.apply_async(import_worker, (config, input_path))
-            import_worker(config, input_path)
+            pool.apply_async(import_worker, (config, input_path))
+            #import_worker(config, input_path)
         pool.close()
         pool.join()
 
     if options.execute=='extract':
-        # this is not modular...
         pool = pool.Pool(processes=config['processes'])
         for fieldname in config['extractor']['filters']['regexp_content']['fields']:
             pool.apply_async(extract_worker, (config, fieldname))
@@ -81,9 +79,7 @@ if __name__ == "__main__":
         pool.join()
 
     if options.execute=='cooccurrences':
-        input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
-            config['cooccurrences']['input_db']['mongo_port'],\
-            config['cooccurrences']['input_db']['mongo_db_name'],\
-            config['cooccurrences']['input_db']['mongo_login'])
-        
-        cooccurrences.main(config)
+        cooccurrences.main_cooccurrences(config)
+
+    if options.execute=='occurrences':
+        cooccurrences.main_occurrences(config)

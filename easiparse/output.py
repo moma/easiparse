@@ -15,8 +15,12 @@
 __author__="elishowk@nonutc.fr"
 
 from os.path import split, join
-import pymongo
+
 import codecs
+from mongodbhandler import MongoDB
+
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
 def getConfiguredOutputs(config, currentfilename=None):
     """
@@ -27,7 +31,7 @@ def getConfiguredOutputs(config, currentfilename=None):
         return outputs
 
     if 'mongodb' in config['output']:
-        outputs['mongodb'] = Mongo(config)
+        outputs['mongodb'] = MongoOutput(config)
     if 'files' in config['output']:
         outputs['files'] = File(config, currentfilename)
 
@@ -51,12 +55,20 @@ class File(Output):
         for line in record_lines:
             self.fileobj.write( line )
 
-class Mongo(Output):
+class MongoOutput(Output):
     def __init__(self, config):
         Output.__init__(self, config)
-        self.mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
-            config['output']['mongodb']['mongo_port'])\
-            [ config['output']['mongodb']['mongo_db_name'] ]
+        if 'mongo_login' in config['output']['mongodb']:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'],\
+                config['output']['mongodb']['mongo_login'])
+        else:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\

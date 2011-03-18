@@ -17,7 +17,7 @@ import yaml
 from glob import glob
 import re
 
-from easiparse import importer, output
+from easiparse import importer, output, mongodbhandler, cooccurrences
 
 import pymongo
 import codecs
@@ -79,3 +79,11 @@ if __name__ == "__main__":
             pool.apply_async(extract_worker, (config, fieldname))
         pool.close()
         pool.join()
+
+    if options.execute=='cooccurrences':
+        input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
+            config['cooccurrences']['input_db']['mongo_port'],\
+            config['cooccurrences']['input_db']['mongo_db_name'],\
+            config['cooccurrences']['input_db']['mongo_login'])
+        
+        cooccurrences.worker(config)

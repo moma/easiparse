@@ -32,6 +32,7 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     print options, args
     config = yaml.load( open( "config.yaml", 'rU' ) )
+    
 
     if options.execute=='import':
         importer.main_multiprocessing(config)

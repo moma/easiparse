@@ -16,11 +16,10 @@
 import mongodbhandler
 import output
 import itertools
-from hashlib import sha256
 import re
 from multiprocessing import pool
 from tinasoft.data import Reader
-from tinasoft.pytextminer import whitelist, corpus, corpora
+from tinasoft.pytextminer import whitelist
 
 
 import logging
@@ -44,13 +43,17 @@ def occurrences_worker(config, ngram):
     term_occ["_id"] = ngram['id']
 
     regex = re.compile( r"\b%s\b"%"|".join(ngram["edges"]['label'].keys()), re.I | re.M | re.U )
-#    notices = input.notices.find({ "$or": [ {"AB":{"$regex":regex}}, {"TI":{"$regex":regex}} ] }, timeout=False)
+    #regex = re.compile( r"\s%s\s"%ngram['label'], re.I | re.M | re.U )
 
     notices_TI = input.notices.find({"TI":{"$regex":regex}}, {"issue": 1}, timeout=False)
     notices_AB = input.notices.find({"AB":{"$regex":regex}}, {"issue": 1}, timeout=False)
 
     count_TI = notices_TI.count()
     count_AB = notices_AB.count()
+
+    if count_AB==0 and count_TI==0:
+        logging.warning("no matching notices")
+        return
 
     if count_TI >= count_AB:
         notices = notices_TI
@@ -63,6 +66,7 @@ def occurrences_worker(config, ngram):
     term_occ["notices"] = occ_year
     
     for year, notices_id_list in term_occ["notices"].iteritems():
+        #logging.debug("attaching %s to %s"%(term_occ['label'], year))
         term_occ.addEdge( "Corpus", year, len(notices_id_list))
 
     outputs['mongodb'].save(term_occ.__dict__, 'whitelist')
@@ -75,76 +79,81 @@ def main_occurrences(config):
     whitelistpath = config['cooccurrences']["whitelist"]["path"]
     logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
 
-    wlimport = Reader('whitelist://'+whitelistpath)
+    wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
     wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
     newwl = wlimport.parse_file()
 
     occspool = pool.Pool(processes=config['processes'])
     # cursor of Whitelist NGrams db
     ngramgenerator = newwl.getNGram()
+    count =0
     try:
         while 1:
+            count += 1
             ngid, ng = ngramgenerator.next()
-#            occspool.apply_async(occurrences_worker, (config, ng))
-            occurrences_worker(config, ng)
+            occspool.apply_async(occurrences_worker, (config, ng))
+            #occurrences_worker(config, ng)
     except StopIteration:
-        occspool.close()
-        occspool.join()
-        outputs = output.getConfiguredOutputs(config['cooccurrences'])
-        # saves ngrams to the whitelist before export
-        allngrams = [(ng['id'], ng) for ng in outputs['mongodb'].mongodb.whitelist.find()]
-        newwl.storage.insertManyNGram(allngrams)
-        # exports ngrams
-        outputs['whitelist'].save(newwl)
+        logging.debug("finished processing occurrences of %d ngrams"%count)
+        
+    occspool.close()
+    occspool.join()
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+    # saves ngrams to the whitelist before export
+    allngrams = [(ng['_id'], ng) for ng in outputs['mongodb'].mongodb.whitelist.find(timeout=False)]
+    newwl.storage.insertManyNGram(allngrams)
+    # exports ngrams
+    outputs['whitelist'].save(newwl)
+
 
 def cooccurrences_worker(config, doublet):
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
-    term_one_id = sha256(doublet[0]).hexdigest()
-    term_two_id = sha256(doublet[1]).hexdigest()
-    doublet_id = term_one_id + "_" + term_two_id
+    doublet_id = doublet[0]["id"] + "_" + doublet[1]["id"]
     coocline = {"_id": doublet_id}
 
-    term_one_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": term_one_id}, {"notices": 1})
-    term_two_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": term_two_id}, {"notices": 1})
+    term_one_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": doublet[0]["id"]}, {"notices": 1}, timeout=False)
+    term_two_record = outputs['mongodb'].mongodb.whitelist.find_one({"_id": doublet[1]["id"]}, {"notices": 1}, timeout=False)
 
-    term_notices = {
-        doublet[0]: term_one_record["notices"],
-        doublet[1]: term_two_record["notices"]
-    }
+    if len(term_one_record["notices"].keys()) == 0 or len(term_two_record["notices"].keys()) == 0:
+        #logging.warning("no record found for cooc processing")
+        return
 
-    for year, notices_list_one in term_notices[doublet[0]].iteritems():
-        if year in term_notices[doublet[1]]:
-            coocline[year] = len(set(notices_list_one) & set(term_notices[doublet[1]][year]))
-#    print coocline
+    for year, notices_list_one in term_one_record["notices"].iteritems():
+        if year in term_two_record["notices"]:
+            coocline[year] = len(set(notices_list_one) & set(term_two_record["notices"][year]))
+            
+    #logging.debug(coocline)
     outputs['mongodb'].save(coocline,'coocmatrix')
 
 def main_cooccurrences(config):
     """
     main cooccurrences processor
     """
-#    terms_list = open(config['cooccurrences']["whitelist"]["path"],'rU').readlines()
-#    terms_list = list(map(normalize, terms_list))
+
     whitelistpath = config['cooccurrences']["whitelist"]["path"]
     logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
 
-    wlimport = Reader('whitelist://'+whitelistpath)
+    wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
     wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
     newwl = wlimport.parse_file()
-    N = len(terms_list)*(len(terms_list)-1) / 2
+    
     coocspool = pool.Pool(processes=config['processes'])
     # cursor of Whitelist NGrams db
     ngramgenerator = newwl.getNGram()
-    ngramid_list = []
+    ngram_list = []
     try:
         while 1:
             ngid, ng = ngramgenerator.next()
-            ngramid_list += [ngid]
-
+            ngram_list += [ng]
     except StopIteration:
-        for i, doublet in enumerate(itertools.combinations(ngramid_list,2)):
-            if not (i+1)%100 or i+1==N:
-                logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
-            cooccurrences_worker(config, doublet)
-            "coocspool.apply_async(cooccurrences_worker, (config, doublet))
-        coocspool.close()
-        coocspool.join()
+        logging.debug("finished cooccurrences processing")
+
+    N = len(ngram_list)*(len(ngram_list)-1) / 2
+    for i, doublet in enumerate(itertools.combinations(ngram_list, 2)):
+        if not (i+1)%100 or i+1==N:
+            logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
+        #logging.debug(doublet)
+        #cooccurrences_worker(config, doublet)
+        coocspool.apply_async(cooccurrences_worker, (config, doublet))
+    coocspool.close()
+    coocspool.join()

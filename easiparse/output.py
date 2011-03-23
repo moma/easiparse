@@ -15,25 +15,36 @@
 __author__="elishowk@nonutc.fr"
 
 from os.path import split, join
-import pymongo
+
 import codecs
+from mongodbhandler import MongoDB
+from tinasoft.data import Writer
+
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
 def getConfiguredOutputs(config, currentfilename=None):
     """
-    Parses config to fill it with output objects
+    Parses the config to fill it with output objects
     """
     outputs = {}
     if  config['output'] is None:
         return outputs
 
     if 'mongodb' in config['output']:
-        outputs['mongodb'] = Mongo(config)
+        outputs['mongodb'] = MongoOutput(config)
     if 'files' in config['output']:
         outputs['files'] = File(config, currentfilename)
-
+    if 'whitelist' in config['output']:
+        outputs['whitelist'] = WhitelistOutput(config)
+    if 'coocmatrixcsv' in config['output']:
+        outputs['coocmatrixcsv'] = CoocMatrixCsv(config)
     return outputs
 
 class Output(object):
+    """
+    abstract class
+    """
     def __init__(self, config, *args, **kwargs):
         self.config = config
 
@@ -41,6 +52,9 @@ class Output(object):
         pass
 
 class File(Output):
+    """
+    file output
+    """
     def __init__(self, config, currentfilename):
         Output.__init__(self, config)
         self.fileobj = codecs.open(\
@@ -51,15 +65,50 @@ class File(Output):
         for line in record_lines:
             self.fileobj.write( line )
 
-class Mongo(Output):
+class CoocMatrixCsv(Output):
+    """
+    csv file output for coocmatrix
+    """
     def __init__(self, config):
         Output.__init__(self, config)
-        self.mongodb = pymongo.Connection( config['output']['mongodb']['mongo_host'],\
-            config['output']['mongodb']['mongo_port'])\
-            [ config['output']['mongodb']['mongo_db_name'] ]
+        self.fileobj = codecs.open(\
+            config['output']['coocmatrixcsv'],\
+            "w+", encoding="ascii", errors="replace")
+    def save(self, line):
+        self.fileobj.write( line )
+
+
+class MongoOutput(Output):
+    """
+    mongo db output
+    """
+    def __init__(self, config):
+        Output.__init__(self, config)
+        if 'mongo_login' in config['output']['mongodb']:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'],\
+                config['output']['mongodb']['mongo_login'])
+        else:
+            self.mongodb = MongoDB(\
+                config['output']['mongodb']['mongo_host'],\
+                config['output']['mongodb']['mongo_port'],\
+                config['output']['mongodb']['mongo_db_name'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\
             {"_id":record['_id']},\
             record,\
             upsert=True)
+
+class WhitelistOutput(Output):
+    """
+    tinasoft whitelist db output
+    """
+    def __init__(self, config):
+        Output.__init__(self, config)
+
+    def save(self, whitelistobj):
+        wlexporter = Writer("whitelist://"+self.config['output']['whitelist']['path'])
+        wlexporter.write_whitelist(whitelistobj, None, status="w")

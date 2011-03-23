@@ -5,6 +5,7 @@ extractor:
         mongo_db_name: "wos"
         mongo_host: "zebulon"
         mongo_port: 27017
+        mongo_login: "password.yaml"
     output:
         mongodb:
             mongo_db_name: "mdts11"
@@ -16,6 +17,23 @@ extractor:
             fields:
                 - "TI"
                 - "AB"
+cooccurrences:
+    input_db:
+        mongo_db_name: "mdts11"
+        mongo_host: "zebulon"
+        mongo_port: 27017
+        mongo_login: "password.yaml"
+    output:
+        mongodb:
+            mongo_db_name: "mdts11_cooccurrences"
+            mongo_host: "localhost"
+            mongo_port: 27017
+            #mongo_login: "password.yaml"
+        #whitelist:
+        #    path: "output_whitelist.csv"
+        coocmatrixcsv: "mdts11_coocmatrix.csv"
+    whitelist:
+        path: "whitelist_mdts11_david_jp.csv"
 importer:
     # debugging purposes
     limit: 10

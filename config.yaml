@@ -1,5 +1,5 @@
 ---
-processes: 2
+processes: 10
 extractor:
     input_db:
         mongo_db_name: "wos"
@@ -25,14 +25,15 @@ cooccurrences:
         mongo_login: "password.yaml"
     output:
         mongodb:
-            mongo_db_name: "mdts11"
+            mongo_db_name: "mdts11_cooccurrences"
             mongo_host: "localhost"
             mongo_port: 27017
             #mongo_login: "password.yaml"
-        whitelist:
-            path: "output_whitelist.csv"
+        #whitelist:
+        #    path: "output_whitelist.csv"
+        coocmatrixcsv: "mdts11_coocmatrix.csv"
     whitelist:
-        path: "FETkeywords-keyphrases.csv"
+        path: "whitelist_mdts11_david_jp.csv"
 importer:
     # debugging purposes
     limit: 10

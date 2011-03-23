@@ -45,3 +45,6 @@ if __name__ == "__main__":
 
     if options.execute=='occurrences':
         cooccurrences.main_occurrences(config)
+
+    if options.execute=='exportcooc':
+        cooccurrences.exportcooc(config)        

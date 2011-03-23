@@ -98,12 +98,12 @@ def main_occurrences(config):
         
     occspool.close()
     occspool.join()
-    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+    #outputs = output.getConfiguredOutputs(config['cooccurrences'])
     # saves ngrams to the whitelist before export
-    allngrams = [(ng['_id'], ng) for ng in outputs['mongodb'].mongodb.whitelist.find(timeout=False)]
-    newwl.storage.insertManyNGram(allngrams)
+    #allngrams = [(ng['_id'], ng) for ng in outputs['mongodb'].mongodb.whitelist.find(timeout=False)]
+    #newwl.storage.insertManyNGram(allngrams)
     # exports ngrams
-    outputs['whitelist'].save(newwl)
+    #outputs['whitelist'].save(newwl)
 
 
 def cooccurrences_worker(config, doublet):
@@ -146,7 +146,7 @@ def main_cooccurrences(config):
             ngid, ng = ngramgenerator.next()
             ngram_list += [ng]
     except StopIteration:
-        logging.debug("finished cooccurrences processing")
+        logging.debug("Got list of %d NGrams"%len(ngram_list))
 
     N = len(ngram_list)*(len(ngram_list)-1) / 2
     for i, doublet in enumerate(itertools.combinations(ngram_list, 2)):
@@ -157,3 +157,12 @@ def main_cooccurrences(config):
         coocspool.apply_async(cooccurrences_worker, (config, doublet))
     coocspool.close()
     coocspool.join()
+
+def exportcooc(config):
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
+    for pair in outputs['mongodb'].mongodb.coocmatrix.find():
+        ngi, ngj = pair['_id'].split("_")
+        for year, cooc in pair.iteritems():
+            if year=='_id': continue
+            if cooc<=0: continue
+            outputs['coocmatrixcsv'].save("%s,%s,%d,%s\n"%(ngi, ngj, cooc, year))

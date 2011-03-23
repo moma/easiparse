@@ -37,6 +37,8 @@ def getConfiguredOutputs(config, currentfilename=None):
         outputs['files'] = File(config, currentfilename)
     if 'whitelist' in config['output']:
         outputs['whitelist'] = WhitelistOutput(config)
+    if 'coocmatrixcsv' in config['output']:
+        outputs['coocmatrixcsv'] = CoocMatrixCsv(config)
     return outputs
 
 class Output(object):
@@ -62,6 +64,19 @@ class File(Output):
     def save(self, record_lines):
         for line in record_lines:
             self.fileobj.write( line )
+
+class CoocMatrixCsv(Output):
+    """
+    csv file output for coocmatrix
+    """
+    def __init__(self, config):
+        Output.__init__(self, config)
+        self.fileobj = codecs.open(\
+            config['output']['coocmatrixcsv'],\
+            "w+", encoding="ascii", errors="replace")
+    def save(self, line):
+        self.fileobj.write( line )
+
 
 class MongoOutput(Output):
     """

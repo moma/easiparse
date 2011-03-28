@@ -12,8 +12,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 import re
 from glob import glob
 from multiprocessing import pool
@@ -23,6 +21,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
 from easiparse.filters import NoticeRejected, getConfiguredFilters
+from easiparse import output
 
 class Record(object):
     def __init__(self, config, lines, recordtype, fieldsdefinition):
@@ -160,6 +159,7 @@ class Notice(Record):
         self.__delattr__('config')
         self.__delattr__('last_tag')
         self.__delattr__('fields')
+        self.__delattr__('filters')
 
     def filter(self):
         """
@@ -183,7 +183,7 @@ class SubRecord(Record):
             self.dispatchValidLine(tag, line)
 
 
-def main(file_isi, config, outputs):
+def import_file(file_isi, config, outputs):
     """
     Parses, filters, and save
     """
@@ -250,6 +250,7 @@ def main(file_isi, config, outputs):
                 if 'files' in outputs:
                     outputs['files'].save(file_lines)
                 if 'mongodb' in outputs:
+                    print notice.__dict__
                     outputs['mongodb'].save(notice.__dict__, "notices")
                 total_imported += 1
 
@@ -257,7 +258,8 @@ def main(file_isi, config, outputs):
                 pass
 
             if limit is not None and total_imported >= limit:
-                outputs['files'].save(["RE\n"])
+                if 'files' in outputs:
+                    outputs['files'].save(["RE\n"])
                 return total_imported
 
         if issue_begin.match(line) is not None:
@@ -275,7 +277,8 @@ def main(file_isi, config, outputs):
             
         if issue_end.match(line) is not None and close_issue==1:
             # closes the issue item and the close_issue flag
-            outputs['files'].save(["RE\n"])
+            if 'files' in outputs:
+                outputs['files'].save(["RE\n"])
             close_issue = 0
             continue
 
@@ -284,18 +287,18 @@ def main(file_isi, config, outputs):
 def import_worker(config, input_path):
     isi_file = codecs.open(input_path, "rU", encoding="ascii", errors="replace")
     outputs = output.getConfiguredOutputs(config['importer'], input_path)
-    subtotal = importer.main(
+    subtotal = import_file(
         isi_file,
         config['importer'],
         outputs
     )
     logging.debug("imported %d matching notices in %s"%(subtotal, isi_file))
 
-def main_multiprocessing(config):
+def main(config):
     glob_list = glob(config['importer']['input_path'])
     importpool = pool.Pool(processes=config['processes'])
     for input_path in glob_list:
-        importpool.apply_async(import_worker, (config, input_path))
-        #import_worker(config, input_path)
+        #importpool.apply_async(import_worker, (config, input_path))
+        import_worker(config, input_path)
     importpool.close()
     importpool.join()

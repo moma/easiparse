@@ -35,7 +35,7 @@ if __name__ == "__main__":
     
 
     if options.execute=='import':
-        importer.main_multiprocessing(config)
+        importer.main(config)
 
     if options.execute=='extract':
         extractor.main(config)

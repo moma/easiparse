@@ -37,15 +37,15 @@ cooccurrences:
         path: "whitelist_mdts11_david_jp.csv"
 importer:
     # debugging purposes
-    limit: 10
+    #limit: 10
     input_path: "input/*.isi"
     output:
-#        mongodb:
-#            mongo_db_name: "mdts11"
-#            mongo_host: "localhost"
-#            mongo_port: 27017
-          files:
-            path: "output"
+        mongodb:
+            mongo_db_name: "wos_test"
+            mongo_host: "localhost"
+            mongo_port: 27017
+#          files:
+#            path: "output"
     isi:
         tag_length: 3
         multiline: "--"
@@ -131,10 +131,10 @@ importer:
                         '/V': ""
                     end: "EC"
     filters:
-        regexp_content:
-            regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
-            fields:
-                - "TI"
-                - "AB"
+        #regexp_content:
+        #    regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
+        #    fields:
+        #        - "TI"
+        #        - "AB"
         required_fields:
             - "TI"

@@ -27,7 +27,14 @@ def getConfiguredOutputs(config, currentfilename=None):
     """
     Parses the config to fill it with output objects
     """
-    outputs = {}
+    outputs = {
+        'mongodb': Output(config),
+        'files': Output(config),
+        'whitelist': Output(config),
+        'coocmatrixcsv': Output(config),
+        'exportwhitelistcsv': Output(config)
+    }
+    
     if  config['output'] is None:
         return outputs
 
@@ -39,6 +46,8 @@ def getConfiguredOutputs(config, currentfilename=None):
         outputs['whitelist'] = WhitelistOutput(config)
     if 'coocmatrixcsv' in config['output']:
         outputs['coocmatrixcsv'] = CoocMatrixCsv(config)
+    if 'exportwhitelistcsv' in config['output']:
+        ExportWhitelistCsv(config)
     return outputs
 
 class Output(object):
@@ -77,6 +86,12 @@ class CoocMatrixCsv(Output):
     def save(self, line):
         self.fileobj.write( line )
 
+class ExportWhitelistCsv(CoocMatrixCsv):
+    def __init__(self, config):
+        Output.__init__(self, config)
+        self.fileobj = codecs.open(\
+            config['output']['exportwhitelistcsv'],\
+            "w+", encoding="ascii", errors="replace")
 
 class MongoOutput(Output):
     """

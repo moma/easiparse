@@ -31,7 +31,8 @@ cooccurrences:
             #mongo_login: "password.yaml"
         #whitelist:
         #    path: "output_whitelist.csv"
-        coocmatrixcsv: "mdts11_coocmatrix.csv"
+        coocmatrixcsv: "coocmatrix.csv"
+        exportwhitelistcsv: "coocmatrix.csv"
     whitelist:
         path: "whitelist_mdts11_david_jp.csv"
 importer:

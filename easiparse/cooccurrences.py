@@ -166,3 +166,5 @@ def exportcooc(config):
             if year=='_id': continue
             if cooc<=0: continue
             outputs['coocmatrixcsv'].save("%s,%s,%d,%s\n"%(ngi, ngj, cooc, year))
+    for ngram in outputs['mongodb'].mongodb.whitelist.find():
+        outputs['exportwhitelistcsv'].save("%s,%s\n"%(ngram['_id'],ngram['label']))

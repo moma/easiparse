@@ -250,7 +250,6 @@ def import_file(file_isi, config, outputs):
                 if 'files' in outputs:
                     outputs['files'].save(file_lines)
                 if 'mongodb' in outputs:
-                    print notice.__dict__
                     outputs['mongodb'].save(notice.__dict__, "notices")
                 total_imported += 1
 

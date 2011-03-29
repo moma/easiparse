@@ -24,7 +24,21 @@ from pymongo.database import Database
 MONGODB_PORT = 27017
 
 class MongoDB(Database):
-    def __init__(self, hostname='localhost', port=MONGODB_PORT, database=None, passwordfile=None):
+    """
+    with or without login/password connector to MongoDB
+    """
+    def __init__(self, config):
+        hostname = config['mongo_host']
+        database = config['mongo_db_name']
+        if 'mongo_port' in config:
+            port = config['mongo_port']
+        else:
+            port = MONGODB_PORT
+        if 'mongo_login' in config:
+            passwordfile = config['mongo_login']
+        else:
+            passwordfile = None
+
         connection = Connection(hostname, port)
         Database.__init__(self, connection, database)
         if passwordfile is not None and exists(passwordfile):

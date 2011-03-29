@@ -50,6 +50,7 @@ def getConfiguredOutputs(config, currentfilename=None):
         ExportWhitelistCsv(config)
     return outputs
 
+
 class Output(object):
     """
     abstract class
@@ -59,6 +60,7 @@ class Output(object):
 
     def save(self, record, *args, **kwargs):
         pass
+
 
 class File(Output):
     """
@@ -74,6 +76,7 @@ class File(Output):
         for line in record_lines:
             self.fileobj.write( line )
 
+
 class CoocMatrixCsv(Output):
     """
     csv file output for coocmatrix
@@ -86,6 +89,7 @@ class CoocMatrixCsv(Output):
     def save(self, line):
         self.fileobj.write( line )
 
+
 class ExportWhitelistCsv(CoocMatrixCsv):
     def __init__(self, config):
         Output.__init__(self, config)
@@ -93,29 +97,21 @@ class ExportWhitelistCsv(CoocMatrixCsv):
             config['output']['exportwhitelistcsv'],\
             "w+", encoding="ascii", errors="replace")
 
-class MongoOutput(Output):
+
+class MongoOutput(Output, MongoDB):
     """
     mongo db output
     """
     def __init__(self, config):
         Output.__init__(self, config)
-        if 'mongo_login' in config['output']['mongodb']:
-            self.mongodb = MongoDB(\
-                config['output']['mongodb']['mongo_host'],\
-                config['output']['mongodb']['mongo_port'],\
-                config['output']['mongodb']['mongo_db_name'],\
-                config['output']['mongodb']['mongo_login'])
-        else:
-            self.mongodb = MongoDB(\
-                config['output']['mongodb']['mongo_host'],\
-                config['output']['mongodb']['mongo_port'],\
-                config['output']['mongodb']['mongo_db_name'])
+        self.mongodb = MongoDB(config['output']['mongodb'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\
             {"_id":record['_id']},\
             record,\
             upsert=True)
+
 
 class WhitelistOutput(Output):
     """

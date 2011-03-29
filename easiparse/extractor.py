@@ -25,10 +25,7 @@ def extract_worker(config, fieldname):
     """
     copies input db notices matching a regexg to an output db
     """
-    input = mongodbhandler.MongoDB(config['extractor']['input_db']['mongo_host'],\
-            config['extractor']['input_db']['mongo_port'],\
-            config['extractor']['input_db']['mongo_db_name'],\
-            config['extractor']['input_db']['mongo_login'])
+    input = mongodbhandler.MongoDB(config['extractor']['input_db'])
     outputs = output.getConfiguredOutputs( config['extractor'] )
     reg = re.compile( config['extractor']['filters']['regexp_content']['regexp'], re.I|re.U|re.M)
 

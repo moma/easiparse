@@ -32,18 +32,16 @@ def normalize(term):
     return stripped
 
 def occurrences_worker(config, ngram):
-    
-    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db']['mongo_host'],\
-        config['cooccurrences']['input_db']['mongo_port'],\
-        config['cooccurrences']['input_db']['mongo_db_name'],\
-        config['cooccurrences']['input_db']['mongo_login'])
+    """
+    Per year occurrence calculator given an NGram
+    """
+    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db'])
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
 
     term_occ = ngram
     term_occ["_id"] = ngram['id']
 
     regex = re.compile( r"\b%s\b"%"|".join(ngram["edges"]['label'].keys()), re.I | re.M | re.U )
-    #regex = re.compile( r"\s%s\s"%ngram['label'], re.I | re.M | re.U )
 
     notices_TI = input.notices.find({"TI":{"$regex":regex}}, {"issue": 1}, timeout=False)
     notices_AB = input.notices.find({"AB":{"$regex":regex}}, {"issue": 1}, timeout=False)
@@ -54,6 +52,8 @@ def occurrences_worker(config, ngram):
     if count_AB==0 and count_TI==0:
         logging.warning("no matching notices")
         return
+    else:
+        logging.warning("found matching notices for %s"%" or ".join(ngram["edges"]['label'].keys()))
 
     if count_TI >= count_AB:
         notices = notices_TI
@@ -66,7 +66,6 @@ def occurrences_worker(config, ngram):
     term_occ["notices"] = occ_year
     
     for year, notices_id_list in term_occ["notices"].iteritems():
-        #logging.debug("attaching %s to %s"%(term_occ['label'], year))
         term_occ.addEdge( "Corpus", year, len(notices_id_list))
 
     outputs['mongodb'].save(term_occ.__dict__, 'whitelist')
@@ -74,8 +73,8 @@ def occurrences_worker(config, ngram):
 def main_occurrences(config):
     """
     main occurrences processor
+    reads a whitelist and push a occurrences_worker() to a process pool
     """
-
     whitelistpath = config['cooccurrences']["whitelist"]["path"]
     logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
 
@@ -94,19 +93,15 @@ def main_occurrences(config):
             occspool.apply_async(occurrences_worker, (config, ng))
             #occurrences_worker(config, ng)
     except StopIteration:
-        logging.debug("finished processing occurrences of %d ngrams"%count)
+        logging.debug("start pool processing occurrences of %d ngrams"%count)
         
     occspool.close()
     occspool.join()
-    #outputs = output.getConfiguredOutputs(config['cooccurrences'])
-    # saves ngrams to the whitelist before export
-    #allngrams = [(ng['_id'], ng) for ng in outputs['mongodb'].mongodb.whitelist.find(timeout=False)]
-    #newwl.storage.insertManyNGram(allngrams)
-    # exports ngrams
-    #outputs['whitelist'].save(newwl)
-
 
 def cooccurrences_worker(config, doublet):
+    """
+    Per year cooccurrences calculator based on previous occurrences processing
+    """
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
     doublet_id = doublet[0]["id"] + "_" + doublet[1]["id"]
     coocline = {"_id": doublet_id}
@@ -128,8 +123,8 @@ def cooccurrences_worker(config, doublet):
 def main_cooccurrences(config):
     """
     main cooccurrences processor
+    reads a whitelist and push a cooccurrences_worker() to a process pool
     """
-
     whitelistpath = config['cooccurrences']["whitelist"]["path"]
     logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
 
@@ -148,17 +143,20 @@ def main_cooccurrences(config):
     except StopIteration:
         logging.debug("Got list of %d NGrams"%len(ngram_list))
 
-    N = len(ngram_list)*(len(ngram_list)-1) / 2
+    #N = len(ngram_list)*(len(ngram_list)-1) / 2
     for i, doublet in enumerate(itertools.combinations(ngram_list, 2)):
-        if not (i+1)%100 or i+1==N:
-            logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
-        #logging.debug(doublet)
+#        if not (i+1)%100 or i+1==N:
+#            logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
         #cooccurrences_worker(config, doublet)
         coocspool.apply_async(cooccurrences_worker, (config, doublet))
+
     coocspool.close()
     coocspool.join()
 
 def exportcooc(config):
+    """
+    Basic exporter of cooccurrences processing to files
+    """
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
     for pair in outputs['mongodb'].mongodb.coocmatrix.find():
         ngi, ngj = pair['_id'].split("_")

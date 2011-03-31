@@ -5,12 +5,14 @@ extractor:
         mongo_db_name: "wos"
         mongo_host: "zebulon"
         mongo_port: 27017
-        mongo_login: "password.yaml"
+        slave_okay: False
+        #mongo_login: "password.yaml"
     output:
         mongodb:
             mongo_db_name: "mdts11"
             mongo_host: "localhost"
             mongo_port: 27017
+            slave_okay: False
     filters:
         regexp_content:
             regexp: \bembryolog.+\b|\bembryo(s)?\b|\bembryonic.+\b
@@ -19,15 +21,24 @@ extractor:
                 - "AB"
 cooccurrences:
     input_db:
-        mongo_db_name: "mdts11_sample"
-        mongo_host: "localhost"
-        mongo_port: 27017
-        #mongo_login: "password.yaml"
-    output:
-        mongodb:
-            mongo_db_name: "wos_cooccurrences_test"
+        -
+            mongo_db_name: "wos"
             mongo_host: "localhost"
             mongo_port: 27017
+            #mongo_login: "password.yaml"
+            slave_okay: False
+        -
+            mongo_db_name: "wos"
+            mongo_host: "localhost"
+            mongo_port: 27117
+            #mongo_login: "password.yaml"
+            slave_okay: True
+    output:
+        mongodb:
+            mongo_db_name: "wos_fet"
+            mongo_host: "localhost"
+            mongo_port: 27017
+            slave_okay: False
             #mongo_login: "password.yaml"
         coocmatrixcsv: "coocmatrix.csv"
         exportwhitelistcsv: "coocwhitelist.csv"
@@ -42,6 +53,7 @@ importer:
             mongo_db_name: "wos_test"
             mongo_host: "localhost"
             mongo_port: 27017
+            slave_okay: False
 #          files:
 #            path: "output"
     isi:

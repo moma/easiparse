@@ -44,7 +44,9 @@ def connect(config):
                 logging.error("error connectiong to replica %s"%replicConfig)
                 raise Exception(exc)
         if len(slaves)==0:
-            return master[config['mongo_db_name']]
+            return master[mongo_db_name]
+        elif master is None:
+            raise Exception("no master nor slave to connect with")
         else:
             slaves += [master]
             ms = MasterSlaveConnection(master, slaves)

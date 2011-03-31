@@ -25,23 +25,17 @@ from tinasoft.pytextminer import whitelist
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
-def normalize(term):
-    lowercase = term.lower()
-    noendlines = lowercase.replace('\n','').replace('\r','')
-    stripped = noendlines.strip()
-    return stripped
-
 def occurrences_worker(config, notice, newwl):
     """
     Per year occurrence calculator given an NGram
     """
-    input = mongodbhandler.connect(config['cooccurrences']['input_db'])
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
     
     if len(newwl['content'])<2:
         raise Exception("the whitelist contains only one element, aborting")
-
-    content = notice['TI']
+    content=""
+    if 'TI' in notice:
+        content += notice['TI']
     if 'DE' in notice:
         content += " " + " ".join(notice['DE'])
     if 'AB' in notice:
@@ -104,9 +98,11 @@ def main_occurrences(config):
     except StopIteration:
         logging.debug('imported %d forms from the whitelist %s'%(len(newwl['content']), whitelistpath))
      
+    input = mongodbhandler.connect(config['cooccurrences']['input_db'])
     occspool = pool.Pool(processes=config['processes'])
     for notice in input.notices.find(timeout=False):
-        occspool.apply_async(occurrences_worker, (config, notice, newwl))
+        #occspool.apply_async(occurrences_worker, (config, notice, newwl))
+        occurrences_worker(config, notice, newwl)
     occspool.close()
     occspool.join()
 

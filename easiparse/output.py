@@ -17,7 +17,7 @@ __author__="elishowk@nonutc.fr"
 from os.path import split, join
 
 import codecs
-from mongodbhandler import MongoDB
+from mongodbhandler import connect
 from tinasoft.data import Writer
 
 import logging
@@ -98,13 +98,13 @@ class ExportWhitelistCsv(CoocMatrixCsv):
             "w+", encoding="ascii", errors="replace")
 
 
-class MongoOutput(Output, MongoDB):
+class MongoOutput(Output):
     """
-    mongo db output
+    mongo db output class
     """
     def __init__(self, config):
         Output.__init__(self, config)
-        self.mongodb = MongoDB(config['output']['mongodb'])
+        self.mongodb = connect(config['output']['mongodb'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\

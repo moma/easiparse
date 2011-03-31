@@ -31,45 +31,54 @@ def normalize(term):
     stripped = noendlines.strip()
     return stripped
 
-def occurrences_worker(config, ngram):
+def occurrences_worker(config, notice, newwl):
     """
     Per year occurrence calculator given an NGram
     """
-    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db'])
+    input = mongodbhandler.connect(config['cooccurrences']['input_db'])
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
-
-    term_occ = ngram
-    term_occ["_id"] = ngram['id']
-
-    regex = re.compile( r"\b%s\b"%"|".join(ngram["edges"]['label'].keys()), re.I | re.M | re.U )
-
-    notices_TI = input.notices.find({"TI":{"$regex":regex}}, {"issue": 1}, timeout=False)
-    notices_AB = input.notices.find({"AB":{"$regex":regex}}, {"issue": 1}, timeout=False)
-
-    count_TI = notices_TI.count()
-    count_AB = notices_AB.count()
-
-    if count_AB==0 and count_TI==0:
-        logging.warning("no matching notices")
-        return
-    else:
-        logging.warning("found matching notices for %s"%" or ".join(ngram["edges"]['label'].keys()))
-
-    if count_TI >= count_AB:
-        notices = notices_TI
-    else:
-        notices = notices_AB
-
-    occ_year = {}
-    for notice in notices:
-        occ_year.setdefault(notice["issue"]["PY"],[]).append(notice["_id"])
-    term_occ["notices"] = occ_year
     
-    for year, notices_id_list in term_occ["notices"].iteritems():
-        term_occ.addEdge( "Corpus", year, len(notices_id_list))
+    if len(newwl['content'])<2:
+        raise Exception("the whitelist contains only one element, aborting")
 
-    outputs['mongodb'].save(term_occ.__dict__, 'whitelist')
+    content = notice['TI']
+    if 'DE' in notice:
+        content += " " + " ".join(notice['DE'])
+    if 'AB' in notice:
+        content += " " + notice['AB']
 
+    for doublet in itertools.combinations(newwl['content'], 2):
+        
+        regex1 = re.compile( r"\b%s\b"%doublet[0], re.I|re.M|re.U )
+        regex2 = re.compile( r"\b%s\b"%doublet[1], re.I|re.M|re.U )
+
+        if regex1.search(content) is not None and regex2.search(content) is not None:
+
+            doublet_id12 = notice['issue']['PY']\
+                +"_"+ sha256( doublet[0].encode( 'ascii', 'replace')).hexdigest()\
+                +"_"+ sha256( doublet[1].encode( 'ascii', 'replace')).hexdigest()
+                            
+            doublet_id21 = notice['issue']['PY']\
+                +"_"+ sha256( doublet[1].encode( 'ascii', 'replace')).hexdigest()\
+                +"_"+ sha256( doublet[0].encode( 'ascii', 'replace')).hexdigest()
+
+            if output['mongodb'].mongodb.coocmatrix.find_one({'_id':doublet_id12}) is not None:
+                output['mongodb'].mongodb.coocmatrix.update(\
+                    {'_id': doublet_id12},\
+                    {'_id': doublet_id12, '$inc':\
+                    {'value': 1}}, upsert=True)
+            elif output['mongodb'].mongodb.coocmatrix.find_one({'_id':doublet_id21}) is not None:
+                output['mongodb'].mongodb.coocmatrix.update(\
+                    {'_id': doublet_id21},\
+                    {'_id': doublet_id21, '$inc':\
+                    {'value': 1}}, upsert=True)
+            else: 
+                output['mongodb'].mongodb.coocmatrix.update(\
+                    {'_id': doublet_id12},\
+                    {'_id': doublet_id12, '$inc':\
+                    {'value': 1}}, upsert=True)
+
+                
 def main_occurrences(config):
     """
     main occurrences processor
@@ -81,20 +90,23 @@ def main_occurrences(config):
     wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
     wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
     newwl = wlimport.parse_file()
-
-    occspool = pool.Pool(processes=config['processes'])
+    newwl['content']=[]
+    outputs = output.getConfiguredOutputs(config['cooccurrences'])
     # cursor of Whitelist NGrams db
     ngramgenerator = newwl.getNGram()
-    count =0
+    count = 0
     try:
         while 1:
             count += 1
             ngid, ng = ngramgenerator.next()
-            occspool.apply_async(occurrences_worker, (config, ng))
-            #occurrences_worker(config, ng)
+            newwl['content']+=ng['edges']['label'].keys()
+            #raise StopIteration()
     except StopIteration:
-        logging.debug("start pool processing occurrences of %d ngrams"%count)
-        
+        logging.debug('imported %d forms from the whitelist %s'%(len(newwl['content']), whitelistpath))
+     
+    occspool = pool.Pool(processes=config['processes'])
+    for notice in input.notices.find(timeout=False):
+        occspool.apply_async(occurrences_worker, (config, notice, newwl))
     occspool.close()
     occspool.join()
 
@@ -117,7 +129,6 @@ def cooccurrences_worker(config, doublet):
         if year in term_two_record["notices"]:
             coocline[year] = len(set(notices_list_one) & set(term_two_record["notices"][year]))
             
-    #logging.debug(coocline)
     outputs['mongodb'].save(coocline,'coocmatrix')
 
 def main_cooccurrences(config):
@@ -145,10 +156,12 @@ def main_cooccurrences(config):
 
     #N = len(ngram_list)*(len(ngram_list)-1) / 2
     for i, doublet in enumerate(itertools.combinations(ngram_list, 2)):
+        doublet_id = doublet[0]["id"] + "_" + doublet[1]["id"]
 #        if not (i+1)%100 or i+1==N:
 #            logging.debug( "%d (over %d pairs of terms)"%( i+1, N ) )
-        #cooccurrences_worker(config, doublet)
-        coocspool.apply_async(cooccurrences_worker, (config, doublet))
+        if outputs['mongodb'].mongodb.coocmatrix.find_one({"_id": doublet_id}, timeout=False) is None:
+            #cooccurrences_worker(config, doublet)
+            coocspool.apply_async(cooccurrences_worker, (config, doublet))
 
     coocspool.close()
     coocspool.join()
@@ -159,10 +172,11 @@ def exportcooc(config):
     """
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
     for pair in outputs['mongodb'].mongodb.coocmatrix.find():
-        ngi, ngj = pair['_id'].split("_")
-        for year, cooc in pair.iteritems():
-            if year=='_id': continue
-            if cooc<=0: continue
-            outputs['coocmatrixcsv'].save("%s,%s,%d,%s\n"%(ngi, ngj, cooc, year))
-    for ngram in outputs['mongodb'].mongodb.whitelist.find():
-        outputs['exportwhitelistcsv'].save("%s,%s\n"%(ngram['_id'],ngram['label']))
+        year, ngi, ngj = pair['_id'].split("_")
+        cooc = pair['value']
+        #for year, cooc in pair.iteritems():
+        #    if year=='_id': continue
+        #    if cooc<=0: continue
+        outputs['coocmatrixcsv'].save("%s,%s,%d,%s\n"%(ngi, ngj, cooc, year))
+    #for ngram in outputs['mongodb'].mongodb.whitelist.find():
+    #    outputs['exportwhitelistcsv'].save("%s,%s\n"%(ngram['_id'],ngram['label']))

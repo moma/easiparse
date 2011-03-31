@@ -15,6 +15,7 @@
 
 import re
 import exceptions
+from tinasoft.data import Reader
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -96,4 +97,29 @@ class RegexpFilter(NoticeFilter):
                         return 1
         # anyway : reject
         raise NoticeRejected("notice did not match the regexp")
+        return 0
+
+class WhitelistFilter(NoticeFilter):
+    name = "whitelist"
+    def apply(self, record):
+        """
+        filters notices not match a regular expression
+        """
+        whitelistpath = self.getRules()
+        extraction_fields = rules['fields']
+        wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
+        wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
+        newwl = wlimport.parse_file()
+        
+        for tag in extraction_fields:
+            if tag not in record: continue
+            if type(record[tag]) == str or type(record[tag]) == unicode:
+                if newwl.test(record[tag]):
+                    return 1
+            elif type(record[tag]) == list:
+                for field in record[tag]:
+                    if newwl.test(field):
+                        return 1
+        # anyway : reject
+        raise NoticeRejected("notice did not match the whitelist")
         return 0

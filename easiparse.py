@@ -41,10 +41,7 @@ if __name__ == "__main__":
         extractor.main(config)
 
     if options.execute=='cooccurrences':
-        cooccurrences.main_cooccurrences(config)
-
-    if options.execute=='occurrences':
-        cooccurrences.main_occurrences(config)
+        cooccurrences.main(config)
 
     if options.execute=='exportcooc':
         cooccurrences.exportcooc(config)        

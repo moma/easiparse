@@ -1,5 +1,5 @@
 ---
-processes: 5
+processes: 10
 extractor:
     input_db:
         mongo_db_name: "wos"
@@ -21,18 +21,24 @@ extractor:
                 - "AB"
 cooccurrences:
     input_db:
-        -
-            mongo_db_name: "wos"
-            mongo_host: "localhost"
-            mongo_port: 27017
-            #mongo_login: "password.yaml"
-            slave_okay: False
-        -
-            mongo_db_name: "wos"
-            mongo_host: "localhost"
-            mongo_port: 27117
-            #mongo_login: "password.yaml"
-            slave_okay: True
+        # connection to mongos sharding element
+        mongo_db_name: "wos"
+        mongo_host: "localhost"
+        mongo_port: 30000
+        #mongo_login: "password.yaml"
+        slave_okay: False
+        #-
+        #    mongo_db_name: "wos"
+        #    mongo_host: "localhost"
+        #    mongo_port: 27017
+        #    #mongo_login: "password.yaml"
+        #    slave_okay: False
+        #-
+        #    mongo_db_name: "wos"
+        #    mongo_host: "localhost"
+        #    mongo_port: 27117
+        #    #mongo_login: "password.yaml"
+        #    slave_okay: True
     output:
         mongodb:
             mongo_db_name: "wos_fet"

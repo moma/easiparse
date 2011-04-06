@@ -248,6 +248,7 @@ def import_file(file_isi, config, outputs):
                 # saves the notice
                 outputs['files'].save(file_lines)
                 outputs['mongodb'].save(notice.__dict__, "notices")
+                outputs['coocoutput'].save(notice.__dict__)
                 total_imported += 1
 
             except NoticeRejected:
@@ -289,6 +290,10 @@ def import_worker(config, input_path):
     logging.debug("imported %d matching notices in %s"%(subtotal, isi_file))
 
 def main(config):
+    """
+    loops on a directory glob path (eg. "input/*")
+    parses every file producing issues and notices
+    """
     glob_list = glob(config['importer']['input_path'])
     importpool = pool.Pool(processes=config['processes'])
     for input_path in glob_list:

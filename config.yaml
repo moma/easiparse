@@ -27,24 +27,12 @@ cooccurrences:
         mongo_port: 30000
         #mongo_login: "password.yaml"
         slave_okay: False
-        #-
-        #    mongo_db_name: "wos"
-        #    mongo_host: "localhost"
-        #    mongo_port: 27017
-        #    #mongo_login: "password.yaml"
-        #    slave_okay: False
-        #-
-        #    mongo_db_name: "wos"
-        #    mongo_host: "localhost"
-        #    mongo_port: 27117
-        #    #mongo_login: "password.yaml"
-        #    slave_okay: True
     output:
         mongodb:
             mongo_db_name: "wos_fet"
             mongo_host: "localhost"
             mongo_port: 27017
-            slave_okay: False
+            #slave_okay: False
             #mongo_login: "password.yaml"
         coocmatrixcsv: "coocmatrix.csv"
         exportwhitelistcsv: "coocwhitelist.csv"
@@ -53,13 +41,21 @@ cooccurrences:
 importer:
     # debugging purposes
     #limit: 10
+    whitelist:
+        path: "FETkeywords-keyphrases.csv"
     input_path: "input/*.isi"
     output:
-        mongodb:
-            mongo_db_name: "wos_test"
+#        mongodb:
+#            mongo_db_name: "wos_test"
+#            mongo_host: "localhost"
+#            mongo_port: 27017
+#            slave_okay: False
+        coocoutput:
+            mongo_db_name: "wos_fet"
             mongo_host: "localhost"
             mongo_port: 27017
-            slave_okay: False
+        coocmatrixcsv: "coocmatrix.csv"
+        exportwhitelistcsv: "coocwhitelist.csv"
 #          files:
 #            path: "output"
     isi:

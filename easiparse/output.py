@@ -15,10 +15,10 @@
 __author__="elishowk@nonutc.fr"
 
 from os.path import split, join
-
+import re
 import codecs
-from mongodbhandler import connect
-from tinasoft.data import Writer
+from mongodbhandler import MongoDB
+from tinasoft.data import Writer, Reader
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -32,7 +32,8 @@ def getConfiguredOutputs(config, currentfilename=None):
         'files': Output(config),
         'whitelist': Output(config),
         'coocmatrixcsv': Output(config),
-        'exportwhitelistcsv': Output(config)
+        'exportwhitelistcsv': Output(config),
+        'coocoutput': Output(config),
     }
     
     if  config['output'] is None:
@@ -47,7 +48,9 @@ def getConfiguredOutputs(config, currentfilename=None):
     if 'coocmatrixcsv' in config['output']:
         outputs['coocmatrixcsv'] = CoocMatrixCsv(config)
     if 'exportwhitelistcsv' in config['output']:
-        ExportWhitelistCsv(config)
+        outputs['exportwhitelistcsv'] = ExportWhitelistCsv(config)
+    if 'coocoutput' in config['output']:
+        outputs['coocoutput'] =  CoocOutput(config)
     return outputs
 
 
@@ -104,7 +107,7 @@ class MongoOutput(Output):
     """
     def __init__(self, config):
         Output.__init__(self, config)
-        self.mongodb = connect(config['output']['mongodb'])
+        self.mongodb = MongoDB(config['output']['mongodb'])
 
     def save(self, record, recordtype):
         self.mongodb[recordtype].update(\
@@ -115,7 +118,7 @@ class MongoOutput(Output):
 
 class WhitelistOutput(Output):
     """
-    tinasoft whitelist db output
+    tinasoft whitelist output : to test
     """
     def __init__(self, config):
         Output.__init__(self, config)
@@ -123,3 +126,89 @@ class WhitelistOutput(Output):
     def save(self, whitelistobj):
         wlexporter = Writer("whitelist://"+self.config['output']['whitelist']['path'])
         wlexporter.write_whitelist(whitelistobj, None, status="w")
+
+
+class CoocOutput(Output):
+    """
+    on the fly cooc calculation, given a notice and a whitelist
+    """
+    def __init__(self, config):
+        Output.__init__(self, config)
+        self.mongodb = MongoDB(config['output']['coocoutput'])
+        self.outputs = getConfiguredOutputs(config['cooccurrences'])
+        self._importwhitelist()
+
+    def _importwhitelist(self):
+        """
+        loads and cache all ngrams in the whitelist
+        """
+        logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
+        whitelistpath = config['cooccurrences']["whitelist"]["path"]
+        wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
+        wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
+        self.newwl = wlimport.parse_file()
+        
+        try:
+            self.newwl['content']=[]
+            # cursor of Whitelist NGrams db
+            ngramgenerator = newwl.getNGram()
+            while 1:
+                ngid, ng = ngramgenerator.next()
+                self.newwl['content'] += [ng]
+                self.outputs['exportwhitelistcsv'].save("%s,%s\n"%(ngid,ng['label']))
+                #raise StopIteration()
+        except StopIteration:
+            logging.debug('imported %d n-lemmes from the whitelist file %s'\
+                    %(len(self.newwl['content']), whitelistpath))
+        if len(self.newwl['content'])<2:
+            raise Exception("the whitelist contains only one element, aborting")
+
+
+    def search_subworker(self, content, year, doublet):
+        """
+        Responsible for matching the pair and incrementing cooccurrences count
+        """
+        logging.debug("looking for cooc of %s and %s"%(doublet[0]['label'], doublet[1]['label']))
+        regex1 = re.compile( r"\b%s\b"%"|".join(doublet[0]['edges']['label'].keys()), re.I|re.M|re.U )
+        regex2 = re.compile( r"\b%s\b"%"|".join(doublet[1]['edges']['label'].keys()), re.I|re.M|re.U )
+
+        if regex1.search(content) is not None and regex2.search(content) is not None:
+            logging.debug("found a cooc !")
+            # will look for both composed 
+            doublet_id12 = year\
+                +"_"+ doublet[0]["id"]\
+                +"_"+ doublet[1]["id"]
+
+            doublet_id21 = year\
+                +"_"+ doublet[1]["id"]\
+                +"_"+ doublet[0]["id"]
+
+            if self.mongodb.coocmatrix.find_one({'_id':doublet_id12}) is not None:
+                self.mongodb.coocmatrix.update(\
+                    {'_id': doublet_id12},\
+                    {'_id': doublet_id12, '$inc':\
+                    {'value': 1}}, upsert=True)
+            elif self.mongodb.coocmatrix.find_one({'_id':doublet_id21}) is not None:
+                self.mongodb.coocmatrix.update(\
+                    {'_id': doublet_id21},\
+                    {'_id': doublet_id21, '$inc':\
+                    {'value': 1}}, upsert=True)
+            else:
+                # anyway saves a new cooc line using 'id12' ID
+                self.mongodb.coocmatrix.save(\
+                    {'_id': doublet_id12, 'value': 1})
+
+    def save(self, notice):
+        """
+        Cooccurrences worker for a notice given a whitelist object
+        """
+        # compose content to search into
+        content = ""
+        if 'TI' in notice:
+            content += notice['TI']
+        if 'DE' in notice:
+            content += " " + " ".join(notice['DE'])
+        if 'AB' in notice:
+            content += " " + notice['AB']
+        for doublet in itertools.combinations(self.newwl['content'], 2):
+            self.search_subworker(content, notice['issue']['PY'], doublet)

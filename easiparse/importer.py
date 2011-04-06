@@ -241,24 +241,20 @@ def import_file(file_isi, config, outputs):
                     save_issue = 0
                     # opens close_issue flag
                     close_issue = 1
-                    if 'files' in outputs:
-                        outputs['files'].save(issue_lines)
-                    if 'mongodb' in outputs:
-                        outputs['mongodb'].save(issue.__dict__, "issues")
+                    outputs['files'].save(issue_lines)
+                    outputs['mongodb'].save(issue.__dict__, "issues")
+
                         
                 # saves the notice
-                if 'files' in outputs:
-                    outputs['files'].save(file_lines)
-                if 'mongodb' in outputs:
-                    outputs['mongodb'].save(notice.__dict__, "notices")
+                outputs['files'].save(file_lines)
+                outputs['mongodb'].save(notice.__dict__, "notices")
                 total_imported += 1
 
             except NoticeRejected:
                 pass
 
             if limit is not None and total_imported >= limit:
-                if 'files' in outputs:
-                    outputs['files'].save(["RE\n"])
+                outputs['files'].save(["RE\n"])
                 return total_imported
 
         if issue_begin.match(line) is not None:
@@ -276,8 +272,7 @@ def import_file(file_isi, config, outputs):
             
         if issue_end.match(line) is not None and close_issue==1:
             # closes the issue item and the close_issue flag
-            if 'files' in outputs:
-                outputs['files'].save(["RE\n"])
+            outputs['files'].save(["RE\n"])
             close_issue = 0
             continue
 
@@ -297,7 +292,7 @@ def main(config):
     glob_list = glob(config['importer']['input_path'])
     importpool = pool.Pool(processes=config['processes'])
     for input_path in glob_list:
-        importpool.apply_async(import_worker, (config, input_path))
-        #import_worker(config, input_path)
+        #importpool.apply_async(import_worker, (config, input_path))
+        import_worker(config, input_path)
     importpool.close()
     importpool.join()

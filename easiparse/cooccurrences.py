@@ -66,7 +66,7 @@ def worker(config, notice, newwl):
     Cooccurrences worker for a notice given a whitelist object
     """
     logging.debug("entering worker with notice %s"%notice['_id'])
-    
+
     if len(newwl['content'])<2:
         raise Exception("the whitelist contains only one element, aborting")
     # compose content to search into
@@ -99,11 +99,9 @@ def main(config):
     newwl['content']=[]
     # cursor of Whitelist NGrams db
     ngramgenerator = newwl.getNGram()
-    count = 0
     outputs = output.getConfiguredOutputs(config['cooccurrences'])
     try:
         while 1:
-            count += 1
             ngid, ng = ngramgenerator.next()
             newwl['content'] += [ng]
             outputs['exportwhitelistcsv'].save("%s,%s\n"%(ngid,ng['label']))
@@ -112,7 +110,7 @@ def main(config):
         logging.debug('imported %d n-lemmes from the whitelist file %s'\
                 %(len(newwl['content']), whitelistpath))
      
-    input = mongodbhandler.connect(config['cooccurrences']['input_db'])
+    input = mongodbhandler.MongoDB(config['cooccurrences']['input_db'])
     #occspool = pool.Pool(processes=config['processes'])
     for notice in input.notices.find(timeout=False):
         #occspool.apply_async(worker, (config, notice, newwl))

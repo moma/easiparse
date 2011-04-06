@@ -18,18 +18,50 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
 
 from os.path import exists
-import yaml
 from pymongo import Connection
 from pymongo.master_slave_connection import MasterSlaveConnection
 from pymongo.database import Database
 MONGODB_PORT = 27017
 
-def connect(config):
+class MongoDB(Database):
+    """
+    with or without login/password connector to MongoDB
+    """
+    def __init__(self, config):
+        import pdb
+        pdb.set_trace()
+        database = config['mongo_db_name']
+        if 'mongo_login' in config:
+            passwordfile = config['mongo_login']
+        else:
+            passwordfile = None
+        connection = MongoDB.connect(config)
+        Database.__init__(self, connection, database)
+        if passwordfile is not None and exists(passwordfile):
+            password = yaml.load(open(passwordfile, 'rU'))
+            self.authenticate(password['mongo_user'], password['mongo_password'])
+
+    @staticmethod
+    def connect(config):
+        """
+        Slave aware Connection to a database
+        """
+        hostname = config['mongo_host']
+        if 'mongo_port' in config:
+            port = config['mongo_port']
+        else:
+            port = MONGODB_PORT
+        if 'slave_okay' in config:
+            return Connection(hostname, port, slave_okay=config['slave_okay'])
+        else:
+            return Connection(hostname, port)
+
+def master_slave_connect(config):
     """
     unique or master/slave pool of connections to MongoDB
     """
     if isinstance(config, dict):
-        return mongoDBConnection(config)[config['mongo_db_name']]
+        return MongoDB.connect(config)[config['mongo_db_name']]
     elif isinstance(config, list):
         mongo_db_name = config[0]['mongo_db_name']
         master = None
@@ -37,9 +69,9 @@ def connect(config):
         for replicConfig in config:
             try:
                 if not replicConfig['slave_okay']:
-                    master = mongoDBConnection(replicConfig)
+                    master =  MongoDB.connect(replicConfig)
                 else:
-                    slaves += [mongoDBConnection(replicConfig)]
+                    slaves += [ MongoDB.connect(replicConfig) ]
             except Exception, exc:
                 logging.error("error connectiong to replica %s"%replicConfig)
                 raise Exception(exc)
@@ -51,51 +83,3 @@ def connect(config):
             slaves += [master]
             ms = MasterSlaveConnection(master, slaves)
             return ms[mongo_db_name]
-
-def mongoDBConnection(config):
-    """
-    Slave aware Connection to a database
-    """
-    hostname = config['mongo_host']
-    #database = config['mongo_db_name']
-    if 'mongo_port' in config:
-        port = config['mongo_port']
-    else:
-        port = MONGODB_PORT
-    #if 'mongo_login' in config:
-    #    passwordfile = config['mongo_login']
-    #else:
-    #    passwordfile = None
-    return Connection(hostname, port, slave_okay=config['slave_okay'])
-
-#def mongoDBDatabase(connection, database_name, passwordfile=None):
-#    """
-#    returns an authenticated connection to a database
-#    """
-#    db = Database(connection, database_name)
-#    if passwordfile is not None and exists(passwordfile):
-#        password = yaml.load(open(passwordfile, 'rU'))
-#        self.authenticate(password['mongo_user'], password['mongo_password'])
-#    return db
-
-#class MongoDB(Database):
-#    """
-#    with or without login/password connector to MongoDB
-#    """
-#    def __init__(self, config):
-#        hostname = config['mongo_host']
-#        database = config['mongo_db_name']
-#        if 'mongo_port' in config:
-#            port = config['mongo_port']
-#        else:
-#            port = MONGODB_PORT
-#        if 'mongo_login' in config:
-#            passwordfile = config['mongo_login']
-#        else:
-#            passwordfile = None
-#
-#        connection = Connection(hostname, port)
-#        Database.__init__(self, connection, database)
-#        if passwordfile is not None and exists(passwordfile):
-#            password = yaml.load(open(passwordfile, 'rU'))
-#            self.authenticate(password['mongo_user'], password['mongo_password'])

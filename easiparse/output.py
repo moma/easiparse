@@ -210,5 +210,11 @@ class CoocOutput(Output):
             content += " " + " ".join(notice['DE'])
         if 'AB' in notice:
             content += " " + notice['AB']
+        coocpool = pool.Pool(processes=config['processes'])
+
         for doublet in itertools.combinations(self.newwl['content'], 2):
-            self.search_subworker(content, notice['issue']['PY'], doublet)
+            coocpool.apply_async(self.search_subworker, (self, content, notice['issue']['PY'], doublet))
+            #self.search_subworker(content, notice['issue']['PY'], doublet)
+            
+        coocpool.close()
+        coocpool.join()

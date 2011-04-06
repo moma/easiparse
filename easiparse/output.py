@@ -17,6 +17,8 @@ __author__="elishowk@nonutc.fr"
 from os.path import split, join
 import re
 import codecs
+import itertools
+
 from mongodbhandler import MongoDB
 from tinasoft.data import Writer, Reader
 from tinasoft.pytextminer import whitelist
@@ -165,45 +167,40 @@ class CoocOutput(Output):
             raise Exception("the whitelist contains only one element, aborting")
 
 
-    def search_subworker(self, content, year, doublet):
+    def increment_cooc(self, year, doublet):
         """
         Responsible for matching the pair and incrementing cooccurrences count
         """
-        logging.debug("looking for cooc of %s and %s"%(doublet[0]['label'], doublet[1]['label']))
-        regex1 = re.compile( r"\b%s\b"%"|".join(doublet[0]['edges']['label'].keys()), re.I|re.M|re.U )
-        regex2 = re.compile( r"\b%s\b"%"|".join(doublet[1]['edges']['label'].keys()), re.I|re.M|re.U )
+        # will look for both composed 
+        doublet_id12 = year\
+            +"_"+ doublet[0]["id"]\
+            +"_"+ doublet[1]["id"]
 
-        if regex1.search(content) is not None and regex2.search(content) is not None:
-            logging.debug("found a cooc !")
-            # will look for both composed 
-            doublet_id12 = year\
-                +"_"+ doublet[0]["id"]\
-                +"_"+ doublet[1]["id"]
+        doublet_id21 = year\
+            +"_"+ doublet[1]["id"]\
+            +"_"+ doublet[0]["id"]
 
-            doublet_id21 = year\
-                +"_"+ doublet[1]["id"]\
-                +"_"+ doublet[0]["id"]
-
-            if self.mongodb.coocmatrix.find_one({'_id':doublet_id12}) is not None:
-                self.mongodb.coocmatrix.update(\
-                    {'_id': doublet_id12},\
-                    {'_id': doublet_id12, '$inc':\
-                    {'value': 1}}, upsert=True)
-            elif self.mongodb.coocmatrix.find_one({'_id':doublet_id21}) is not None:
-                self.mongodb.coocmatrix.update(\
-                    {'_id': doublet_id21},\
-                    {'_id': doublet_id21, '$inc':\
-                    {'value': 1}}, upsert=True)
-            else:
-                # anyway saves a new cooc line using 'id12' ID
-                self.mongodb.coocmatrix.save(\
-                    {'_id': doublet_id12, 'value': 1})
+        if self.mongodb.coocmatrix.find_one({'_id':doublet_id12}) is not None:
+            self.mongodb.coocmatrix.update(\
+                {'_id': doublet_id12},\
+                {'_id': doublet_id12, '$inc':\
+                {'value': 1}}, upsert=True)
+        elif self.mongodb.coocmatrix.find_one({'_id':doublet_id21}) is not None:
+            self.mongodb.coocmatrix.update(\
+                {'_id': doublet_id21},\
+                {'_id': doublet_id21, '$inc':\
+                {'value': 1}}, upsert=True)
+        else:
+            # anyway saves a new cooc line using 'id12' ID
+            self.mongodb.coocmatrix.save(\
+                {'_id': doublet_id12, 'value': 1})
 
     def save(self, notice):
         """
         Cooccurrences worker for a notice given a whitelist object
         """
         # compose content to search into
+        logging.debug("incrementing cooc for notice %s"%notice['_id'])
         content = ""
         if 'TI' in notice:
             content += notice['TI']
@@ -211,11 +208,15 @@ class CoocOutput(Output):
             content += " " + " ".join(notice['DE'])
         if 'AB' in notice:
             content += " " + notice['AB']
-        coocpool = pool.Pool(processes=config['processes'])
-
-        for doublet in itertools.combinations(self.newwl['content'], 2):
-            coocpool.apply_async(self.search_subworker, (self, content, notice['issue']['PY'], doublet))
-            #self.search_subworker(content, notice['issue']['PY'], doublet)
+        marker_list = []
+        position=0
+        for ngram in self.newwl['content']:
+            regex1 = re.compile(\
+                r"\b%s\b"%"|".join(ngram['edges']['label'].keys()),\
+                re.I|re.M|re.U )
+            if regex1.search(content) is not None:
+                marker_list += [ngram]
+            position+=1
+        for doublet in itertools.combinations(marker_list, 2): 
+            self.increment_cooc(notice['issue']['PY'], doublet)
             
-        coocpool.close()
-        coocpool.join()

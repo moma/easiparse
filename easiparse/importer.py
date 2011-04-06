@@ -297,7 +297,7 @@ def main(config):
     glob_list = glob(config['importer']['input_path'])
     importpool = pool.Pool(processes=config['processes'])
     for input_path in glob_list:
-        #importpool.apply_async(import_worker, (config, input_path))
-        import_worker(config, input_path)
+        importpool.apply_async(import_worker, (config, input_path))
+        #import_worker(config, input_path)
     importpool.close()
     importpool.join()

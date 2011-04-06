@@ -31,7 +31,7 @@ cooccurrences:
         mongodb:
             mongo_db_name: "wos_fet"
             mongo_host: "localhost"
-            mongo_port: 27017
+            mongo_port: 30000
             #slave_okay: False
             #mongo_login: "password.yaml"
         coocmatrixcsv: "coocmatrix.csv"
@@ -43,7 +43,7 @@ importer:
     #limit: 10
     whitelist:
         path: "FETkeywords-keyphrases.csv"
-    input_path: "input/*.isi"
+    input_path: "/data/tina/Thomson/raw/*"
     output:
 #        mongodb:
 #            mongo_db_name: "wos_test"
@@ -53,9 +53,10 @@ importer:
         coocoutput:
             mongo_db_name: "wos_fet"
             mongo_host: "localhost"
-            mongo_port: 27017
-        coocmatrixcsv: "coocmatrix.csv"
-        exportwhitelistcsv: "coocwhitelist.csv"
+            mongo_port: 30000
+            output:
+                coocmatrixcsv: "coocmatrix.csv"
+                exportwhitelistcsv: "coocwhitelist.csv"
 #          files:
 #            path: "output"
     isi:

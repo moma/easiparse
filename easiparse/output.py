@@ -19,6 +19,7 @@ import re
 import codecs
 from mongodbhandler import MongoDB
 from tinasoft.data import Writer, Reader
+from tinasoft.pytextminer import whitelist
 
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)-8s %(message)s")
@@ -135,15 +136,15 @@ class CoocOutput(Output):
     def __init__(self, config):
         Output.__init__(self, config)
         self.mongodb = MongoDB(config['output']['coocoutput'])
-        self.outputs = getConfiguredOutputs(config['cooccurrences'])
+        self.outputs = getConfiguredOutputs(config['output']['coocoutput'])
         self._importwhitelist()
 
     def _importwhitelist(self):
         """
         loads and cache all ngrams in the whitelist
         """
+        whitelistpath = self.config["whitelist"]["path"]
         logging.debug("loading whitelist from %s (id = %s)"%(whitelistpath, whitelistpath))
-        whitelistpath = config['cooccurrences']["whitelist"]["path"]
         wlimport = Reader('whitelist://'+whitelistpath, dialect="excel", encoding="ascii")
         wlimport.whitelist = whitelist.Whitelist( whitelistpath, whitelistpath )
         self.newwl = wlimport.parse_file()
@@ -151,7 +152,7 @@ class CoocOutput(Output):
         try:
             self.newwl['content']=[]
             # cursor of Whitelist NGrams db
-            ngramgenerator = newwl.getNGram()
+            ngramgenerator = self.newwl.getNGram()
             while 1:
                 ngid, ng = ngramgenerator.next()
                 self.newwl['content'] += [ng]

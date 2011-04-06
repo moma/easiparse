@@ -28,8 +28,6 @@ class MongoDB(Database):
     with or without login/password connector to MongoDB
     """
     def __init__(self, config):
-        import pdb
-        pdb.set_trace()
         database = config['mongo_db_name']
         if 'mongo_login' in config:
             passwordfile = config['mongo_login']

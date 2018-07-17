@@ -1,6 +1,6 @@
-#Easiparse
+# Easiparse
 
-##What for ?
+## What for ?
 
 Parsing and importing to mongodb any flat text file following a flexible configuration. A flat text file is for example MEDLINE format from pubmed.gov : 
 
@@ -12,12 +12,12 @@ Parsing and importing to mongodb any flat text file following a flexible configu
   IS  - 1472-6491 (Electronic)
   ...
 
-##Dependencies
+## Dependencies
 
  * Python 2.6
  * MongoDB, and pymongo
 
-##How-to
+## How-to
 
  * configure easiparse editing config.yaml
  * launch mongodb server
